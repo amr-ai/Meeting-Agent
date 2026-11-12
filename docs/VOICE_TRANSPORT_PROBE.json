@@ -1,0 +1,9 @@
+{
+  "scope": "Actual Gemini native audio through LiveKit Google plugin; no RTC, Meet, chat or response gate",
+  "input": "Existing synthetic English WAV",
+  "transcribed": true,
+  "audio_received": true,
+  "errors": [],
+  "speech_end_to_first_audio_ms": 3679.2,
+  "utc_finished": "2026-11-07T12:31:52Z"
+}

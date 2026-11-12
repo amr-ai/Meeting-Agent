@@ -1,0 +1,7 @@
+{
+  "scope": "Credentialed text-only Gemini request with synthetic input; no meeting joined or chat sent",
+  "model": "gemini-3.5-flash-lite",
+  "success": true,
+  "text_characters": 151,
+  "generation_ms": 6109.2
+}

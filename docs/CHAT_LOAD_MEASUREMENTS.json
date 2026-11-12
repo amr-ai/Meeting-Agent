@@ -1,0 +1,90 @@
+{
+  "stored_chat_messages": 100,
+  "scope": "Actual application output-node handoff and event-loop scheduling under durable chat load; excludes Gemini, network, microphones and playback",
+  "providers": "Mock async text generation (30ms) and Recall send (20ms); no real messages sent",
+  "synthetic_events": 100,
+  "chat_disabled": {
+    "output_node_handoff": {
+      "samples": 100,
+      "median_ms": 0.06009999924572185,
+      "p95_ms": 0.10479999764356762,
+      "max_ms": 0.22449999232776463
+    },
+    "scheduled_frame_jitter": {
+      "samples": 100,
+      "median_ms": 7.9489499985356815,
+      "p95_ms": 15.10499999858439,
+      "max_ms": 15.688500003307126
+    }
+  },
+  "chat_enabled": {
+    "output_node_handoff": {
+      "samples": 100,
+      "median_ms": 0.05259999306872487,
+      "p95_ms": 0.06580000626854599,
+      "max_ms": 0.09970000246539712
+    },
+    "scheduled_frame_jitter": {
+      "samples": 100,
+      "median_ms": 2.380350008024834,
+      "p95_ms": 5.442499998025596,
+      "max_ms": 13.825100002577528
+    }
+  },
+  "chat_stages": {
+    "event_to_response_attempt": {
+      "samples": 6,
+      "median_ms": 2568.6522722244263,
+      "p95_ms": 3862.2794151306152,
+      "max_ms": 3862.2794151306152
+    },
+    "generation_started": {
+      "samples": 6,
+      "median_ms": 0.0,
+      "p95_ms": 0.0,
+      "max_ms": 0.0
+    },
+    "mention_detection": {
+      "samples": 25,
+      "median_ms": 0.18020000425167382,
+      "p95_ms": 2.7168999949935824,
+      "max_ms": 3.7271999899530783
+    },
+    "persistence": {
+      "samples": 100,
+      "median_ms": 11.693449996528216,
+      "p95_ms": 33.071399986511096,
+      "max_ms": 48.720299993874505
+    },
+    "provider_send": {
+      "samples": 6,
+      "median_ms": 39.38669999479316,
+      "p95_ms": 53.29809999966528,
+      "max_ms": 53.29809999966528
+    },
+    "provider_timestamp_to_reception": {
+      "samples": 100,
+      "median_ms": 0.1958608627319336,
+      "p95_ms": 0.2391338348388672,
+      "max_ms": 0.4336833953857422
+    },
+    "text_generation": {
+      "samples": 6,
+      "median_ms": 33.42224999505561,
+      "p95_ms": 35.19010001036804,
+      "max_ms": 35.19010001036804
+    },
+    "text_response_workflow": {
+      "samples": 6,
+      "median_ms": 63.175349998346064,
+      "p95_ms": 90.90629999991506,
+      "max_ms": 90.90629999991506
+    },
+    "total_chat_response": {
+      "samples": 6,
+      "median_ms": 2535.866141319275,
+      "p95_ms": 3826.754331588745,
+      "max_ms": 3826.754331588745
+    }
+  }
+}

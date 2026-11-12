@@ -1,0 +1,24 @@
+{
+  "scope": "Real LiveKit RTC audio input -> Gemini Live -> received non-silent RTC audio; excludes browser speaker and Recall",
+  "input": "Gemini-generated synthetic speech, replayed at real-time speed",
+  "mode": "meeting",
+  "addressed_fixtures": false,
+  "model": "gemini-3.8-live",
+  "api_version": "v1beta",
+  "utc_finished": "2026-11-07T12:26:24Z",
+  "valid_turns": 0,
+  "attempted_turns": 1,
+  "p50_ms": null,
+  "p95_ms": null,
+  "max_ms": null,
+  "error_rate": 1.0,
+  "turns": [
+    {
+      "turn": 1,
+      "language": "arabic",
+      "input_duration_seconds": 5.18,
+      "speech_end_to_first_received_audio_ms": null,
+      "error": "timeout"
+    }
+  ]
+}

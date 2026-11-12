@@ -1,0 +1,82 @@
+{
+  "scope": "Identical cached synthetic speech through LiveKit, the application worker and Gemini native audio; excludes Google Meet/Recall playback and browser acoustics.",
+  "website_baseline": "Model factory, room audio options, local instructions and browser media code preserved from the user-confirmed working archive.",
+  "results": [
+    {
+      "scope": "Real LiveKit RTC audio input -> Gemini Live -> received non-silent RTC audio; excludes browser speaker and Recall",
+      "input": "Gemini-generated synthetic speech, replayed at real-time speed",
+      "mode": "meeting",
+      "addressed_fixtures": true,
+      "model": "gemini-3.8-live",
+      "api_version": "v1beta",
+      "utc_finished": "2026-11-06T22:21:37Z",
+      "valid_turns": 3,
+      "attempted_turns": 3,
+      "p50_ms": 6688.9,
+      "p95_ms": 11019.7,
+      "max_ms": 11019.7,
+      "error_rate": 0.0,
+      "turns": [
+        {
+          "turn": 1,
+          "language": "arabic",
+          "input_duration_seconds": 3.66,
+          "speech_end_to_first_received_audio_ms": 2678.0,
+          "error": null
+        },
+        {
+          "turn": 2,
+          "language": "english",
+          "input_duration_seconds": 1.9,
+          "speech_end_to_first_received_audio_ms": 11019.7,
+          "error": null
+        },
+        {
+          "turn": 3,
+          "language": "mixed",
+          "input_duration_seconds": 3.66,
+          "speech_end_to_first_received_audio_ms": 6688.9,
+          "error": null
+        }
+      ]
+    },
+    {
+      "scope": "Real LiveKit RTC audio input -> Gemini Live -> received non-silent RTC audio; excludes browser speaker and Recall",
+      "input": "Gemini-generated synthetic speech, replayed at real-time speed",
+      "mode": "local",
+      "addressed_fixtures": true,
+      "model": "gemini-3.8-live",
+      "api_version": "v1beta",
+      "utc_finished": "2026-11-06T22:23:01Z",
+      "valid_turns": 3,
+      "attempted_turns": 3,
+      "p50_ms": 2921.7,
+      "p95_ms": 6550.7,
+      "max_ms": 6550.7,
+      "error_rate": 0.0,
+      "turns": [
+        {
+          "turn": 1,
+          "language": "arabic",
+          "input_duration_seconds": 3.66,
+          "speech_end_to_first_received_audio_ms": 2921.7,
+          "error": null
+        },
+        {
+          "turn": 2,
+          "language": "english",
+          "input_duration_seconds": 1.9,
+          "speech_end_to_first_received_audio_ms": 6550.7,
+          "error": null
+        },
+        {
+          "turn": 3,
+          "language": "mixed",
+          "input_duration_seconds": 3.66,
+          "speech_end_to_first_received_audio_ms": 2661.4,
+          "error": null
+        }
+      ]
+    }
+  ]
+}

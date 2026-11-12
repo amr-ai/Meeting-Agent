@@ -1,0 +1,62 @@
+{
+  "create_model": {
+    "unchanged": true,
+    "before_sha256": "5f8de7984a1905881deab2b08a338d6af7799eb4933e539f4acc43cdae3d24df",
+    "after_sha256": "5f8de7984a1905881deab2b08a338d6af7799eb4933e539f4acc43cdae3d24df"
+  },
+  "audio_room_options": {
+    "unchanged": true,
+    "before_sha256": "d82b72230a2457e5bc78598d91c6faa3dfa60875952c3b58c238f7413f31a746",
+    "after_sha256": "d82b72230a2457e5bc78598d91c6faa3dfa60875952c3b58c238f7413f31a746"
+  },
+  "create_session": {
+    "unchanged": true,
+    "before_sha256": "6d188f8a7f86b5f594524aa67bc4c0dfa948d11834f1c46797e7f1ed4a7be006",
+    "after_sha256": "6d188f8a7f86b5f594524aa67bc4c0dfa948d11834f1c46797e7f1ed4a7be006"
+  },
+  "realtime_audio_output_node": {
+    "unchanged": false,
+    "before_sha256": "bb787b85269de3652e3c169229a86c108700fb212a582b642db69dcf39d5a465",
+    "after_sha256": "7cf106ee9eed63c1fe4836ea7295be20dad2c792826d38633daf1adbfa10e007"
+  },
+  "user_state": {
+    "unchanged": false,
+    "before_sha256": "734a709f3c77e4ff6f86647f9d27bb11ec505204cbe4a2bb288b6320615606d1",
+    "after_sha256": "6a7e92364af3e5e8304551bf31933d23a8e75a8fe1f4da0da52eb4b829d6c500"
+  },
+  "input_transcribed": {
+    "unchanged": false,
+    "before_sha256": "5944c86f538f54257c1ea61015a3a7caa1e172fba7aff5f776c0b83d6835b7e0",
+    "after_sha256": "dd43491e8d9092458886d9e16d06ba3d0540ed8880c9551c082ac099035045a7"
+  },
+  "app/agent/gating.py": {
+    "unchanged": false,
+    "before_sha256": "7f4ff14ff27df81f2975e075fe9a3e18eb6e4fff2087d8f74ed5429e7116eb84",
+    "after_sha256": "9e5622ce9d3d561ef9182ffb8c23e942f8f933ec0d15d3f4cb431d1aa7c9e7d3"
+  },
+  "app/voice/runtime.py": {
+    "unchanged": true,
+    "before_sha256": "d41c5bd673ebc29e33f9f588d30f38945aefbe191f6a93ee8d05a47eaacf1930",
+    "after_sha256": "d41c5bd673ebc29e33f9f588d30f38945aefbe191f6a93ee8d05a47eaacf1930"
+  },
+  "static/media.js": {
+    "unchanged": true,
+    "before_sha256": "985d4c33463e1742bb8b0fa937ee4afbd20567dad7db51ca83373a8d71a8d5dd",
+    "after_sha256": "985d4c33463e1742bb8b0fa937ee4afbd20567dad7db51ca83373a8d71a8d5dd"
+  },
+  "static/app.js": {
+    "unchanged": true,
+    "before_sha256": "4badb5fa69c4dfdf9e258778d9cb98a2304a7149f31203420705cd10ff4c01a7",
+    "after_sha256": "4badb5fa69c4dfdf9e258778d9cb98a2304a7149f31203420705cd10ff4c01a7"
+  },
+  "static/orb.js": {
+    "unchanged": true,
+    "before_sha256": "6fc3810d87258829cfa0630c957496ce53d7755979a84f334c023c8edb44ecb6",
+    "after_sha256": "6fc3810d87258829cfa0630c957496ce53d7755979a84f334c023c8edb44ecb6"
+  },
+  "app/memory/live.py": {
+    "unchanged": true,
+    "before_sha256": "f1f03007abfa6adda02c08113518484c202a56d64e57ef45ded5033d0a59a854",
+    "after_sha256": "f1f03007abfa6adda02c08113518484c202a56d64e57ef45ded5033d0a59a854"
+  }
+}

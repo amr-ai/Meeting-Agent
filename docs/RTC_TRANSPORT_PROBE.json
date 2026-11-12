@@ -1,0 +1,7 @@
+{
+  "scope": "Isolated LiveKit RTC synthetic microphone to receiver; no Gemini or Meet",
+  "subscribed": true,
+  "received_frames": 3,
+  "audible_frames": 2,
+  "utc_finished": "2026-11-07T12:34:20Z"
+}

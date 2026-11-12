@@ -1,0 +1,49 @@
+{
+  "scope": "Actual synthetic Gemini/LiveKit voice and actual public research/text model; Recall delivery captured locally, no Google Meet joined or chat sent",
+  "jobs": [
+    {
+      "status": "done",
+      "error": null
+    }
+  ],
+  "captured_messages": 1,
+  "audio": {
+    "scope": "Real LiveKit RTC audio input -> Gemini Live -> received non-silent RTC audio; excludes browser speaker and Recall",
+    "input": "Gemini-generated synthetic speech, replayed at real-time speed",
+    "mode": "meeting",
+    "addressed_fixtures": false,
+    "model": "gemini-3.8-live",
+    "api_version": "v1beta",
+    "utc_finished": "2026-11-07T12:36:41Z",
+    "valid_turns": 3,
+    "attempted_turns": 3,
+    "p50_ms": 2832.8,
+    "p95_ms": 3562.5,
+    "max_ms": 3562.5,
+    "error_rate": 0.0,
+    "turns": [
+      {
+        "turn": 1,
+        "language": "arabic",
+        "input_duration_seconds": 5.18,
+        "speech_end_to_first_received_audio_ms": 2832.8,
+        "error": null
+      },
+      {
+        "turn": 2,
+        "language": "english",
+        "input_duration_seconds": 1.36,
+        "speech_end_to_first_received_audio_ms": 2322.4,
+        "error": null
+      },
+      {
+        "turn": 3,
+        "language": "mixed",
+        "input_duration_seconds": 3.5,
+        "speech_end_to_first_received_audio_ms": 3562.5,
+        "error": null
+      }
+    ]
+  },
+  "utc_finished": "2026-11-07T12:36:41Z"
+}

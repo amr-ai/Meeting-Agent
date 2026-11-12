@@ -1,0 +1,522 @@
+[
+  {
+    "file": "agentcall-main/.claude-plugin/marketplace.json",
+    "bytes": 659,
+    "sha256": "3331c0d7fd4b42ba66866394932faee2832c1b454b772fe776d8ca07a06444dc"
+  },
+  {
+    "file": "agentcall-main/.claude-plugin/plugin.json",
+    "bytes": 1002,
+    "sha256": "2f264de3dd2c7583f2ef76c1e303fbd1aeb596f7585daaf8ccb65cb12f8de933"
+  },
+  {
+    "file": "agentcall-main/.gitignore",
+    "bytes": 77,
+    "sha256": "6754d82c1eb811e35e5c73021bb5d2b1f35abc714e2824ba54afbaabce231ad3"
+  },
+  {
+    "file": "agentcall-main/.grok-plugin/plugin.json",
+    "bytes": 1030,
+    "sha256": "6032837fb600386135fcfd5eeee27b444248956f275681da57040f93d5492274"
+  },
+  {
+    "file": "agentcall-main/CHANGELOG.md",
+    "bytes": 5817,
+    "sha256": "1fb62e3de3d1e23c6646f89b9c652c4a9aeb2c1418ac386901d0e94156c681ba"
+  },
+  {
+    "file": "agentcall-main/examples/coding-companion/bridge.py",
+    "bytes": 23263,
+    "sha256": "b76afbae5c28047df61ce8f9a0c15d91d70a4958990f7f710ed8093e5cffc433"
+  },
+  {
+    "file": "agentcall-main/examples/coding-companion/README.md",
+    "bytes": 11141,
+    "sha256": "9046c9c603c9ecd077246d60cd78e8fd0ee7a61eb6e77dd9de11358e727d2324"
+  },
+  {
+    "file": "agentcall-main/examples/coding-companion/SKILL-FRAGMENT.md",
+    "bytes": 8097,
+    "sha256": "9fc46d1bc746ff634c93fb2f1de37aa15a1e1bc0268ec3d31f1bd5d3927b1634"
+  },
+  {
+    "file": "agentcall-main/examples/elevenlabs-voice/agent.js",
+    "bytes": 9153,
+    "sha256": "0ca33174138953511d6e7a89fdb68d1da2075709b6fef160f02033ff247d98e9"
+  },
+  {
+    "file": "agentcall-main/examples/elevenlabs-voice/agent.py",
+    "bytes": 10042,
+    "sha256": "d1cf52544de588427542f6003fd36df8d9e602bdadb9ac4be868a55cccd71ef7"
+  },
+  {
+    "file": "agentcall-main/examples/elevenlabs-voice/README.md",
+    "bytes": 2973,
+    "sha256": "71868bd5415d6f2933951a6e86553c7f5a0f9551567c9dd83aede2afd9412db3"
+  },
+  {
+    "file": "agentcall-main/examples/meeting-assistant/assistant.py",
+    "bytes": 10071,
+    "sha256": "89cf824085f75168ab53c35769abf211aff5dbef116b44b895cbcc5e16210e43"
+  },
+  {
+    "file": "agentcall-main/examples/meeting-assistant/README.md",
+    "bytes": 6469,
+    "sha256": "ac6ea69bd0d5bb43fee4f588dad91ccc01171737f300a1be2b96632c219885dc"
+  },
+  {
+    "file": "agentcall-main/examples/meeting-assistant-smart/assistant.py",
+    "bytes": 26700,
+    "sha256": "b969e36a9234080151cfb22c22d4abc974c090d08438c790c737bf17164f7eed"
+  },
+  {
+    "file": "agentcall-main/examples/meeting-assistant-smart/README.md",
+    "bytes": 13040,
+    "sha256": "9e15e6cce176dd57c56913df4e0041a816b07bb550e6b9002e05aacb3204fb69"
+  },
+  {
+    "file": "agentcall-main/examples/meeting-assistant-smart/tools.py",
+    "bytes": 7689,
+    "sha256": "ee2026668b18f33154a011fa5b47e8bca36e4c64cb5d7f36b3a891a0c8acb1f7"
+  },
+  {
+    "file": "agentcall-main/examples/notetaker-multilingual/notetaker.py",
+    "bytes": 15029,
+    "sha256": "a13776040b9ac80eb5928e929a2b664b294cc7f615fdb94557dae4163428bb23"
+  },
+  {
+    "file": "agentcall-main/examples/notetaker-multilingual/README.md",
+    "bytes": 5832,
+    "sha256": "0aaa1d0ec0fcc25230428a44437027cda12ed45fbb835223c7e87f88e0dd7114"
+  },
+  {
+    "file": "agentcall-main/examples/notetaker-simple/notetaker.js",
+    "bytes": 6737,
+    "sha256": "2da87c11dddca446fc9237d19116fa65f67a66a49c91e0708f8f5e93dd065494"
+  },
+  {
+    "file": "agentcall-main/examples/notetaker-simple/notetaker.py",
+    "bytes": 7277,
+    "sha256": "5c69e9801aba23235b997ca54d83a5299c54330e4b5e803d350e7b82321b2813"
+  },
+  {
+    "file": "agentcall-main/examples/notetaker-simple/README.md",
+    "bytes": 2159,
+    "sha256": "349d6ef0398153cd272193275a92b444084e4327a86dbab7d1103489a9154cdd"
+  },
+  {
+    "file": "agentcall-main/examples/notetaker-smart/notetaker.js",
+    "bytes": 13485,
+    "sha256": "f99fb4784dd8c95fb957b55faa12fbc3856469f594b48dd4e40d380cd66120a1"
+  },
+  {
+    "file": "agentcall-main/examples/notetaker-smart/notetaker.py",
+    "bytes": 13636,
+    "sha256": "5f982fd3a63af2cff1554a3628fba8bc29d7491fddff871accef3369076a5a70"
+  },
+  {
+    "file": "agentcall-main/examples/notetaker-smart/README.md",
+    "bytes": 4254,
+    "sha256": "9a6e722fc89142ae299b27d90ab1087def0abfdbd93c4c9f6c643f157a0f51a5"
+  },
+  {
+    "file": "agentcall-main/examples/support-agent/agent.py",
+    "bytes": 19264,
+    "sha256": "0af5e68cafb7c28093857bbfa5e67b9cff86257b72c1ecf75875b0e0940abd2d"
+  },
+  {
+    "file": "agentcall-main/examples/support-agent/knowledge.json",
+    "bytes": 2092,
+    "sha256": "830cb5c13437639392dd3b5b8d72b9dd2f86a8d577db9cdeab369d7b2260b318"
+  },
+  {
+    "file": "agentcall-main/examples/support-agent/README.md",
+    "bytes": 6365,
+    "sha256": "61e5aedf7fa8f4c21385bcfb111a4e91b58237e84af66064ddcb9c255df0b777"
+  },
+  {
+    "file": "agentcall-main/gemini-extension.json",
+    "bytes": 248,
+    "sha256": "0c69019accf62c0a050552ebd04f0f571da992bcdb951954dbcac023714726db"
+  },
+  {
+    "file": "agentcall-main/LICENSE",
+    "bytes": 1083,
+    "sha256": "5d2e7bba6103ff7e6130d9ced12593e6733b6a72517a62cab740449b69929cb3"
+  },
+  {
+    "file": "agentcall-main/README.md",
+    "bytes": 8425,
+    "sha256": "1e2ad10d761efc25e5b19e4e683a09dafaa175c3b98c726fca37d0460fa8e284"
+  },
+  {
+    "file": "agentcall-main/references/api.md",
+    "bytes": 17684,
+    "sha256": "7011a7436160588e2fa35793b0c383477a6a15df97e5c9aaf38294a639ed2b9e"
+  },
+  {
+    "file": "agentcall-main/references/guides/bring-your-own-voice.md",
+    "bytes": 3309,
+    "sha256": "763a08e00f91cb3c9031299cf0e8b8410ce1ec59415ea172407e80610358d663"
+  },
+  {
+    "file": "agentcall-main/references/guides/collaborative-mode.md",
+    "bytes": 22059,
+    "sha256": "5489e4f58d073d7924c8e0d4d0a8b3fd24aeb2a635b2a3722a71961d48f793a8"
+  },
+  {
+    "file": "agentcall-main/references/guides/crash-recovery.md",
+    "bytes": 8255,
+    "sha256": "0fafb54af5b94df6476c0f00ab2b0bfcfdf7e9917641e5bc6e26627f6e89d772"
+  },
+  {
+    "file": "agentcall-main/references/guides/interruption-handling.md",
+    "bytes": 9559,
+    "sha256": "1433be9e1eb18d7aa5f83bf175919aa76b68d70f83ba78ad0b0cb0deb12b74d9"
+  },
+  {
+    "file": "agentcall-main/references/guides/ui-templates.md",
+    "bytes": 7282,
+    "sha256": "23f33726839fc18766dabb1e248174768cb37a8b25e812f1a5a6adf5948fc308"
+  },
+  {
+    "file": "agentcall-main/references/guides/webpage-audio.md",
+    "bytes": 13554,
+    "sha256": "592fcaee08c7d53cd31746a37683cfc9a8fa34c10166db76068673683401b630"
+  },
+  {
+    "file": "agentcall-main/references/guides/webpage-av-screenshare.md",
+    "bytes": 10045,
+    "sha256": "eacbe6c00f96f01087cc597cca1038b210a95955bcb4f3c30ed4b2a5e8e8cb81"
+  },
+  {
+    "file": "agentcall-main/references/guides/webpage-av.md",
+    "bytes": 5788,
+    "sha256": "a839c80cc1e7500c465692808efee53c8671c5be944dfefab554d54b7858fed0"
+  },
+  {
+    "file": "agentcall-main/scripts/node/agentcall.js",
+    "bytes": 2755,
+    "sha256": "0cd8f89c99534bb6a2a2b7d6bb42a9fc05132b645afd9505d3aae55c26c05f42"
+  },
+  {
+    "file": "agentcall-main/scripts/node/bridge-visual.js",
+    "bytes": 62092,
+    "sha256": "352cd28438566f8c4c2453525273118e2c02706e294d8a163a6b0061f5a13e2c"
+  },
+  {
+    "file": "agentcall-main/scripts/node/bridge.js",
+    "bytes": 37573,
+    "sha256": "6810bf8422dfc43c4768602e5307a82769b08f69050d553746997067d9826360"
+  },
+  {
+    "file": "agentcall-main/scripts/node/check_update.js",
+    "bytes": 5279,
+    "sha256": "88a8a79ac758a1b26816f2b01551de08559540aecdd4dcaa71e8c55bbc047f66"
+  },
+  {
+    "file": "agentcall-main/scripts/node/join.js",
+    "bytes": 6005,
+    "sha256": "1f4e89900396eabdd01cd13e0e64586cba59ab6b50ce2b27747b59a366e411c4"
+  },
+  {
+    "file": "agentcall-main/scripts/node/package.json",
+    "bytes": 139,
+    "sha256": "de14b53a76903395cf4211c04c37788a7f4f56041dd5bf3721953aaa4666a17a"
+  },
+  {
+    "file": "agentcall-main/scripts/node/register.js",
+    "bytes": 4925,
+    "sha256": "f4222a4d2249f0f1069dea1f6bad55f57b875e6ad597edce473e0a4b674f21a2"
+  },
+  {
+    "file": "agentcall-main/scripts/node/stdin-commands.js",
+    "bytes": 3318,
+    "sha256": "d9812589aecde0bbbfc92b61e227c75adaac00a7ae9de47f8597f04995e2f123"
+  },
+  {
+    "file": "agentcall-main/scripts/node/tunnel.js",
+    "bytes": 4828,
+    "sha256": "27fbdef75edd43f7c5468b212fcd47162cf80d587f232c3b12a5e2e8abce3faa"
+  },
+  {
+    "file": "agentcall-main/scripts/python/agentcall.py",
+    "bytes": 5417,
+    "sha256": "2ef4196c53690979c924a7f8e5f695c9e7fabbf90bb22f64a625e3c56fd0c74e"
+  },
+  {
+    "file": "agentcall-main/scripts/python/bridge-visual.py",
+    "bytes": 90824,
+    "sha256": "b541a1e074166c203b4cd5745a3cc0644e4f3112763e390cc8608651b35afdc4"
+  },
+  {
+    "file": "agentcall-main/scripts/python/bridge.py",
+    "bytes": 57930,
+    "sha256": "27d84e0dfe080fa79346bd27e4e0088e3411c68c4ec67164465e1c284a2ff6cb"
+  },
+  {
+    "file": "agentcall-main/scripts/python/check_update.py",
+    "bytes": 4898,
+    "sha256": "33a75d7c998bba53560dab859a44fe6aee991ca755cc12855f476b589882853c"
+  },
+  {
+    "file": "agentcall-main/scripts/python/join.py",
+    "bytes": 8710,
+    "sha256": "9b5ac2bfa2dae1d8f98919dbbca36504f5cbe52a0054e25160e08f503bfe7300"
+  },
+  {
+    "file": "agentcall-main/scripts/python/register.py",
+    "bytes": 5084,
+    "sha256": "8f58cf2eeabe254bbebfd214fcd4502807816e163d2fdc13fcbdd0e51521f655"
+  },
+  {
+    "file": "agentcall-main/scripts/python/requirements.txt",
+    "bytes": 30,
+    "sha256": "e1d4559d060101cc4f5da1867c04c6ed40578c12654d55a361ba78e272fb14a3"
+  },
+  {
+    "file": "agentcall-main/scripts/python/tunnel.py",
+    "bytes": 9033,
+    "sha256": "60e4b99bca60921a89b07791e1433cd59fcbb1e83d3c4a54ae7e5d759598edce"
+  },
+  {
+    "file": "agentcall-main/scripts/run.sh",
+    "bytes": 1579,
+    "sha256": "028030445fe4a84c671d6ec90ee1e10a2808e0f75d89c52bdbeb0dfab2765e70"
+  },
+  {
+    "file": "agentcall-main/SKILL.md",
+    "bytes": 103274,
+    "sha256": "2d4cbd495c2e4f2c6a218c1f6057ed63403a6d2f264dfd18288792881857c811"
+  },
+  {
+    "file": "agentcall-main/tests/stdin_commands_node.test.mjs",
+    "bytes": 4783,
+    "sha256": "a57054b9beda3e9fb43d0a326ec6be2755c063cce52d1ab1816fbbd7c6433a4c"
+  },
+  {
+    "file": "agentcall-main/tests/test_bridge_stdin.py",
+    "bytes": 3951,
+    "sha256": "481a74dde3a057c6c5a0a585993da96c8f776ac5b158598322b69c460666a3d3"
+  },
+  {
+    "file": "agentcall-main/tests/test_bridge_visual_stdin.py",
+    "bytes": 6160,
+    "sha256": "c42adc3f1aeee71ecf09dd7aac8449f5489296f474fa95c30bdd2bc9e2b96ff8"
+  },
+  {
+    "file": "agentcall-main/ui-templates/agentcall-audio.js",
+    "bytes": 15778,
+    "sha256": "7e6d8a1f30009e0019d2e2e3bb6590e6acff0da9cb5365dd71d6aeb934b33891"
+  },
+  {
+    "file": "agentcall-main/ui-templates/avatar/index.html",
+    "bytes": 7904,
+    "sha256": "d883fcd0a4587ffd5c1c061f4f4e0b0eeab75f073ad60c78a986f99326f8c5d4"
+  },
+  {
+    "file": "agentcall-main/ui-templates/blank/index.html",
+    "bytes": 945,
+    "sha256": "a75cc8215188b600a04b1384045a150675f85d17942ca632fc9d44884e9f0d18"
+  },
+  {
+    "file": "agentcall-main/ui-templates/dashboard/index.html",
+    "bytes": 3713,
+    "sha256": "8ca9b543117f9b069e396da4c7027f2d6e4321103330ae9eb5bbb9b139d96ce6"
+  },
+  {
+    "file": "agentcall-main/ui-templates/orb/index.html",
+    "bytes": 5519,
+    "sha256": "78326ed534282e98d4c357dc77d00675074af9c0d267d95a1fa9c4a31ca03199"
+  },
+  {
+    "file": "agentcall-main/ui-templates/pattern/index.html",
+    "bytes": 14161,
+    "sha256": "7fed33a8f7af883b53504bad6af20c591c10a739f6c08dfe1f54d92834d8c6f0"
+  },
+  {
+    "file": "agentcall-main/ui-templates/ring/index.html",
+    "bytes": 6786,
+    "sha256": "83c856bd5e60141815f6a1124b9756191c55838a67b41b20a8c192c34e442127"
+  },
+  {
+    "file": "agentcall-main/ui-templates/voice-agent/index.html",
+    "bytes": 7034,
+    "sha256": "9b21574a83db8144355e0718cb4ecdaa002d05259a3d3ecd3b89a52a9c4520c8"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/.env.sample",
+    "bytes": 761,
+    "sha256": "cd580b2c30716740015bf06f89766a7c2532de2fe0ca312fdc29f3983655920b"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/.eslintrc.cjs",
+    "bytes": 6894,
+    "sha256": "81ca3cf50a961e0e8a27d59203e3b3080692e34bd423a717d79884fff0e7d95a"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/.gitignore",
+    "bytes": 62,
+    "sha256": "c53889551c23db42e924bab76b3cbcaae9bafd8d1189824d35b78dc588495d4b"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/AGENTS.md",
+    "bytes": 3701,
+    "sha256": "a4aa89f061057f5c036e909f9d6b5a9b8ee8adf3654b0e2e48f3ebe2a4bf3d45"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/package-lock.json",
+    "bytes": 387540,
+    "sha256": "4ceb5946644b38ed37aba9ecea270e81e7f2ef402dcb15f8aaf00cd56b50beba"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/package.json",
+    "bytes": 2174,
+    "sha256": "0890f8bd752399a63e2575e1d7c93cef5f7348358083977bf8eb8278610723c0"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/README.md",
+    "bytes": 10303,
+    "sha256": "21948d7a85f836b38b3d451da1e5a56c29abd9a71ee5142ac810922bcd4c5a93"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/agent/agent.ts",
+    "bytes": 712,
+    "sha256": "504902486edcf2086fe426fba4d570f32a61e1c800becc09ed9858f30203a605"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/agent/main.ts",
+    "bytes": 3738,
+    "sha256": "b43203898e623e7a45eb3212df68ac74637acf2eb9191e9b1a6aaff84cf32295"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/agent/models.ts",
+    "bytes": 883,
+    "sha256": "1b0eea49281b7faf16f3dbc2536b6322f4a99043eee13fa55246c1dd515d193c"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/auth/session_token.ts",
+    "bytes": 2449,
+    "sha256": "579bb6f6dea8de8f44f46a81e7c104a9a77330ce9e627394c1f919dcea6e314a"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/client/App.tsx",
+    "bytes": 7328,
+    "sha256": "5afd6d6223635988c95a8d8d534592000ce1b1383d191820885f47ec3ba8ae49"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/client/bridge-session.ts",
+    "bytes": 2252,
+    "sha256": "36c7f15775cae84f7d56b5bc6b887d5f3560a09a26f798bfc86a86f6efac3ab1"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/client/connection-details.ts",
+    "bytes": 1178,
+    "sha256": "0bfae9b5b0bf06b87d18f544328b1a8237b788df7c132df85a516a13ad9722c2"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/client/index.css",
+    "bytes": 316,
+    "sha256": "3f2beae7cb8715b708ebb15b95dbe17146f32df892d700a0ad921a44fc80c4b3"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/client/index.html",
+    "bytes": 395,
+    "sha256": "e703fcbba6244bfc17a62e0c47ad9f5b429fc152b43137e725773681894e0d8a"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/client/Main.tsx",
+    "bytes": 373,
+    "sha256": "cadad0ad9a4163c3da36a90bd568fc9d48140265f05a904d3c6946eccada49e4"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/client/session-token.ts",
+    "bytes": 1002,
+    "sha256": "8d97c7b7fbd7c49e6ef50d6a3b83fa4f727871b660737910c92037a0e1ab76b9"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/config/env.ts",
+    "bytes": 1040,
+    "sha256": "e118cad3939e5191a98b5d02bf768d02a18986aeda092412d9cce33c5520b95b"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/config/EnvSchema.ts",
+    "bytes": 2305,
+    "sha256": "e47656b17360c73f7714a980f58fcb2d7c730dd938626e74cf757b3b123cd964"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/livekit/bridge_status.ts",
+    "bytes": 1011,
+    "sha256": "76a392e952832ed0aaed102fd2db5469a6471e32de03cdf0ce15ea563d6397c9"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/livekit/browser_bridge.ts",
+    "bytes": 16666,
+    "sha256": "7678f04083912801084a5b5f4f6ed333e588441ad2b0f05a7db3aac316d143a5"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/livekit/create_bridge_token.test.ts",
+    "bytes": 1293,
+    "sha256": "606aea75c6ad0506df974e11b48b2ceaf4dd6cfc6ed640eb3b2889e9ceec1dfc"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/livekit/create_bridge_token.ts",
+    "bytes": 1949,
+    "sha256": "e4feebbabb11abfb650140b2f78fc4a0f7c02681c38a9462046a9cc3d7ae31ec"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/livekit/ensure_agent_dispatch.test.ts",
+    "bytes": 3440,
+    "sha256": "58bb9a8af833711e29d514ab09abcb46c8b86c94a9d9d8dcce715fd373e8f621"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/livekit/ensure_agent_dispatch.ts",
+    "bytes": 3322,
+    "sha256": "b7b4930188a81cf2f37bda4286a99bd95ccc78049bfed8d8d835f4e4951cb276"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/livekit/identity.ts",
+    "bytes": 1057,
+    "sha256": "18ecb13d1639c7e0b61df919869cee8c303d69103f44cc884f6bf3b85615579b"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/livekit/track_selection.ts",
+    "bytes": 882,
+    "sha256": "0d2bc197805b92264d1b721d30d3628363cb1b1721f83afcebb699b302e1d370"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/recall/create_bot.ts",
+    "bytes": 3475,
+    "sha256": "593345b6d76d0119c13ba9f70dfcad859df72c33cbe9b8e9217d3994d7bddc27"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/recall/recording_done_webhook.ts",
+    "bytes": 1313,
+    "sha256": "a680ec5f3f1051d5e683e0cb9902a63cd381278947749d50e29800f41eb1e11c"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/scripts/create_bot.ts",
+    "bytes": 2767,
+    "sha256": "bf7a3156862b9131be6e410af3dc24c1883b7cf0f9f3eba077b6a52ba72f728e"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/server/app.ts",
+    "bytes": 3129,
+    "sha256": "453539706cddb5a8acb581e9c621361c5418418ad98283824aeeb386e612cd54"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/src/server/index.ts",
+    "bytes": 913,
+    "sha256": "7628133f22c6ebcbdf1af04f39e4445ef104cd8e016d9417e215b81b5976c66c"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/tsconfig.json",
+    "bytes": 497,
+    "sha256": "e810beddf61fd99d9cd5dae0698d8de81ca143bb1da4286df67714ebfa58a856"
+  },
+  {
+    "file": "output-media-livekit-voice-agent-main/vite.config.ts",
+    "bytes": 1008,
+    "sha256": "b7a2f4125c7e7594f04d472c6f01449bf6c5d276e39ccc6100ad1e318a4d81ec"
+  }
+]

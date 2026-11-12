@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-06",
+  "model": "gemini-3.8-live",
+  "api_version": "v1beta",
+  "input": "Synthetic speech generated with Gemini Live; no user microphone recording",
+  "direct_gemini_audio_trial": {
+    "successful_turns": 1,
+    "end_of_sent_speech_to_first_audio_ms": 11046.0,
+    "endpointing": "Provider default",
+    "includes_livekit": false
+  },
+  "livekit_transport_trial": {
+    "successful_trials": 1,
+    "first_audio_transit_ms": 362.1,
+    "includes_gemini": false,
+    "includes_acoustic_playback": false
+  },
+  "full_path_initial_run": {
+    "scope": "Real LiveKit RTC audio input -> Gemini Live -> received non-silent RTC audio; excludes browser speaker and Recall",
+    "input": "Gemini-generated synthetic speech, replayed at real-time speed",
+    "model": "gemini-3.8-live",
+    "api_version": "v1beta",
+    "utc_finished": "2026-11-06T16:34:48Z",
+    "valid_turns": 1,
+    "attempted_turns": 2,
+    "p50_ms": 17881.6,
+    "p95_ms": 17881.6,
+    "max_ms": 17881.6,
+    "error_rate": 0.5,
+    "turns": [
+      {
+        "turn": 1,
+        "language": "arabic",
+        "input_duration_seconds": 2.54,
+        "speech_end_to_first_received_audio_ms": 17881.6,
+        "error": null
+      },
+      {
+        "turn": 2,
+        "language": "english",
+        "input_duration_seconds": 1.82,
+        "speech_end_to_first_received_audio_ms": null,
+        "error": "timeout"
+      }
+    ]
+  },
+  "full_path_continuous_input_run": {
+    "scope": "Real LiveKit RTC audio input -> Gemini Live -> received non-silent RTC audio; excludes browser speaker and Recall",
+    "input": "Gemini-generated synthetic speech, replayed at real-time speed",
+    "model": "gemini-3.8-live",
+    "api_version": "v1beta",
+    "utc_finished": "2026-11-06T16:37:56Z",
+    "valid_turns": 0,
+    "attempted_turns": 1,
+    "p50_ms": null,
+    "p95_ms": null,
+    "max_ms": null,
+    "error_rate": 1.0,
+    "turns": [
+      {
+        "turn": 1,
+        "language": "arabic",
+        "input_duration_seconds": 2.54,
+        "speech_end_to_first_received_audio_ms": null,
+        "error": "timeout"
+      }
+    ]
+  },
+  "interpretation": "Insufficient successful turns for meaningful P50/P95 conclusions. Full-path latency target not achieved; timeouts remain unresolved. No Recall or browser acoustic test."
+}

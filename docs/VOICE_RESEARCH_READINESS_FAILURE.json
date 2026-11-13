@@ -1,0 +1,17 @@
+{
+  "scope": "Real LiveKit RTC audio input -> Gemini Live -> received non-silent RTC audio; excludes browser speaker and Recall",
+  "input": "Gemini-generated synthetic speech, replayed at real-time speed",
+  "mode": "meeting",
+  "addressed_fixtures": false,
+  "model": "gemini-3.8-live",
+  "api_version": "v1beta",
+  "utc_finished": "2026-11-07T11:20:17Z",
+  "valid_turns": 0,
+  "attempted_turns": 0,
+  "p50_ms": null,
+  "p95_ms": null,
+  "max_ms": null,
+  "error_rate": null,
+  "turns": [],
+  "failure": "Worker/RTC readiness timed out before any audio trial; not a latency sample"
+}

@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101113"><title>Khaled · Voice</title>
+<link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/voice.css"></head>
+<body class="voice-page" data-state="idle">
+<header class="voice-header"><a class="brand" href="/" aria-label="Khaled home"><span class="brand-mark">k<span>•</span></span><span>Khaled<span class="brand-sub">Your voice companion</span></span></a><span class="language-pill"><span></span> Arabic & English</span></header>
+<main class="voice-main">
+<div class="intro"><p class="voice-eyebrow">A LITTLE MORE HUMAN</p><h1>Just start talking.</h1><p>No typing. Just you and Khaled.</p></div>
+<div class="orb-stage" aria-hidden="true"><div class="orb-aura"></div><div class="orb"><div class="orb-cloud cloud-one"></div><div class="orb-cloud cloud-two"></div><div class="orb-cloud cloud-three"></div><div class="orb-gloss"></div></div></div>
+<div class="voice-feedback"><p id="status" role="status" aria-live="polite">Ready when you are</p><div class="sound-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div>
+<div class="voice-controls"><button id="connect" class="start-button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 10v1a6 6 0 0 0 12 0v-1M12 17v4M9 21h6"/></svg><span>Start conversation</span></button><button id="disconnect" class="end-button" disabled aria-label="End conversation" title="End conversation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+<p class="voice-hint">A space to think out loud.</p><audio id="audio" autoplay></audio>
+</main><footer class="voice-footer"><span><span class="footer-dot"></span> Real-time voice</span><span>Headphones make it even better.</span></footer>
+<script type="module" src="/static/app.js"></script></body></html>

@@ -171,10 +171,12 @@ async def test_visual_trace_correlates_wait_schedule_and_terminal_without_questi
     assert 'private screen question' not in str(rows)
 
 
-async def test_speech_onset_restores_high_sensitivity_with_explicit_comparison_option(settings):
+async def test_speech_onset_uses_low_sensitivity_by_default_with_explicit_override(settings):
     from google.genai import types
 
-    assert settings.gemini_start_sensitivity == 'high'
+    # The SDK interrupts on every provider speech-start without local confirmation,
+    # so 'high' turned noise into barge-ins. See PLAN.md B1 and step 10.
+    assert settings.gemini_start_sensitivity == 'low'
     for sensitivity, expected in [('high', types.StartSensitivity.START_SENSITIVITY_HIGH),
                                   ('low', types.StartSensitivity.START_SENSITIVITY_LOW)]:
         model = create_model(settings.model_copy(update={'gemini_start_sensitivity': sensitivity}))

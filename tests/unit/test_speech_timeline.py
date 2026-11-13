@@ -98,3 +98,26 @@ def test_short_blip_inside_speech_does_not_end_the_turn():
     assert events == ['start'], 'a pause mid-sentence must not end the turn'
     events += run(timeline, [silence()] * 30)
     assert events == ['start', 'end']
+
+
+def test_confirmed_ms_reports_how_long_speech_has_been_confirmed():
+    now = [1000.0]
+    timeline = SpeechTimeline(clock=lambda: now[0])
+    assert timeline.confirmed_ms() == 0.0
+
+    for item in speech(20):
+        now[0] += 0.02
+        timeline.push(item)
+    assert timeline.speaking
+    first = timeline.confirmed_ms()
+    assert first > 0
+
+    for _ in range(10):
+        now[0] += 0.02
+        timeline.push(speech(1)[0])
+    assert timeline.confirmed_ms() > first, 'a cough arriving later must be distinguishable'
+
+    for _ in range(30):
+        now[0] += 0.02
+        timeline.push(silence())
+    assert timeline.confirmed_ms() == 0.0

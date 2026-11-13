@@ -18,7 +18,10 @@ class Settings(BaseSettings):
     gemini_model: str = 'gemini-3.8-live'
     gemini_api_version: str = 'v1beta'
     gemini_silence_duration_ms: int = Field(default=300, ge=100, le=2000)
-    gemini_start_sensitivity: Literal['high', 'low'] = 'high'
+    # High made every provider VAD trigger a full barge-in: the SDK interrupts on the
+    # speech-start event with no min_duration check on the realtime path
+    # (agent_activity.py:2271-2293 vs :2520), so noise cut the agent off mid-sentence.
+    gemini_start_sensitivity: Literal['high', 'low'] = 'low'
     gemini_voice: str = 'Iapetus'
     input_languages: str = 'ar,en'
     voice_noise_suppression: bool = True

@@ -79,6 +79,12 @@ class SpeechTimeline:
     def speaking(self) -> bool:
         return self._started_at is not None
 
+    def confirmed_ms(self) -> float:
+        """How long speech has been continuously confirmed, or 0 while silent."""
+        if self._started_at is None:
+            return 0.0
+        return (self._clock() - self._started_at) * 1000
+
     def _modulation(self) -> float:
         values = [rms for rms, _, _ in self._window]
         mean = sum(values) / len(values)

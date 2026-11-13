@@ -404,6 +404,11 @@ async def entrypoint(ctx: JobContext):
             agent.user_speaking = event.new_state == 'speaking'
             if event.new_state == 'speaking':
                 telemetry.emit('provider_user_state_speaking_observed')
+                # The SDK interrupts on this event without any local confirmation, so
+                # record whether our own timeline agrees that a person is talking.
+                telemetry.emit('barge_in_observed',
+                               confirmed_ms=round(timeline.confirmed_ms(), 1),
+                               agent_speaking=agent.is_speaking)
                 agent.turns.provider_started()
             elif event.old_state == 'speaking':
                 agent.turns.provider_stopped()

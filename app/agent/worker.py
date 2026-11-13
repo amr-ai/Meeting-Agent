@@ -43,6 +43,7 @@ from app.voice.input_health import InputHealth
 from app.voice.network import google_http_options, tls_context, warm_network_runtime
 from app.voice.recovery import RecoveringRealtimeModel, connection_failure_reason
 from app.voice.runtime import initialize_audio_runtime, setup_worker
+from app.voice.speech import SpeechTimeline
 from app.workflows.search import SearchWorkflow
 
 load_dotenv(ROOT / '.env')
@@ -325,6 +326,15 @@ async def entrypoint(ctx: JobContext):
         model.audio_observer = input_health.observe
         if s.voice_noise_suppression:
             model.audio_filter_factory = SpeechInputFilter
+        # The only end-of-speech evidence in this app: the provider's activity events
+        # follow generation, and its final transcript arrives at generation end.
+        # Observes frames only and gates nothing.
+        timeline = SpeechTimeline(
+            on_start=lambda at: telemetry.emit('user_speech_started', observed_monotonic=at),
+            on_end=lambda at, duration_ms: telemetry.emit(
+                'user_speech_end', observed_monotonic=at, duration_ms=round(duration_ms, 1)))
+        model.speech_timeline = timeline
+        agent.speech_timeline = timeline
         visual_replies = VisualReplies(agent, session)
         model.visual_reply_handler = visual_replies.submit
         if meta['mode'] == 'meeting':

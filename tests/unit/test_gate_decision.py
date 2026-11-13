@@ -4,6 +4,7 @@ The previous gate awaited a transcript inside the audio generator. The provider 
 emits the final transcript when generation ends, so the wait could not succeed; it
 produced 5 s stalls and 26 dropped answers out of 193 generated responses.
 """
+import time
 from types import SimpleNamespace
 
 from livekit import rtc
@@ -109,3 +110,15 @@ async def test_stop_mid_stream_revokes_the_remainder():
 
     assert [f async for f in agent.realtime_audio_output_node(source(), None)] == frames[:1]
     assert agent.published_audio is True
+
+
+async def test_an_undecided_gate_never_consumes_the_decision_timeout():
+    """The old path blocked for decision_timeout (5 s) on exactly this input."""
+    gate = ResponseGate('Khaled', local=False, decision_timeout=5.0)
+    agent = _Agent(gate)
+
+    started = time.perf_counter()
+    assert [f async for f in agent.realtime_audio_output_node(_frames(count=200), None)] == []
+    elapsed = time.perf_counter() - started
+
+    assert elapsed < 2.0, f'the audio path waited {elapsed:.2f}s; it must not wait at all'

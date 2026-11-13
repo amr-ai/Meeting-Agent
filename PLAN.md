@@ -26,6 +26,42 @@ Unchanged: the L1 measurement (13.5 % dropped), the `reconcile([])` wipe, the ou
 
 ---
 
+## Execution status (2026-11-14)
+
+Repo initialised and committed step by step; every commit ran `ruff` + the full suite.
+
+| Step | State | Commit |
+|---|---|---|
+| 1 git + baseline | **done** — 164 files tracked, `.venv`/`data`/`.env` never added | `fce5b46` |
+| 2 R1 empty-transcript wipe | **done** — 2 tests (`test_recall_reconcile.py`) | `de05d35` |
+| 3 R2 outbox 4xx taxonomy | **done** — 7 tests (`test_outbox_retry.py`): 404/401/400/403/410/422 terminal, 408/429 retried, 5xx recovered | `de05d35` |
+| 4 R3 supervisor guard | **done** — 2 tests (`test_supervisor.py`) | `de05d35` |
+| 5 delete dead code | **done** — 4 scripts + `event_digest` + `TranscriptStore` + 2 orphan imports | `de05d35` |
+| 6 speech timeline | **done** — `app/voice/speech.py`, 8 tests; 100 µs/frame = 5 ms CPU per audio-second | `b6f93f3` |
+| 9 authorization rewrite | **done** — `ResponseGate.decide()`, 5 tests (`test_gate_decision.py`) | `c54d4ec` |
+| 11 transcript filter | **done** — 16 cases, wake/stop exempt, no confidence gate | `4adbfd2` |
+| 10 barge-in | **partially done** — sensitivity default now `low`; `barge_in_observed` records local confirmation age. *Blocking* the SDK interrupt needs client-side turn detection (Q3), so this step measures rather than pretends | `1f6bdfe` |
+| 7 config consolidation | **pending** | — |
+| 8 docs archive | **pending** | — |
+| 12 stop-intent module | **pending** — the review's warning about the stop grammar is real; it is a refactor with a 20-phrase × 6-context matrix, not a bug fix | — |
+| 13-22 | **pending** — 13 needs provider spend, 9's pre-generation spike needs Q3 | — |
+
+Measured effect (offline, reproducible):
+
+| | before | after |
+|---|---|---|
+| await inside the audio generator | `await gate.claim()`, up to 5 s | none — `decide()` is synchronous |
+| undecided gate with 200 frames | blocks `decision_timeout`, then drops | returns in <2 s (measured; actual ≈ ms); drops nothing it can answer |
+| generated responses lost | 26 / 193 (13.5 %) | structurally impossible: the answer is either published or explicitly cancelled and counted |
+| `response_gate_wait_started` | emitted | gone; `response_gate_decided.gate_wait_ms` is always 0 |
+| test suite | 370 | 409 |
+
+**Re-scoped:** R6. The leak it described (state left behind by a denied response) is gone because `decide()` does not mutate the permit on refusal — asserted in `test_generation_before_any_transcript_is_cancelled_not_buffered`. `turns.audio_finished` therefore still runs only on the published path, which is now the correct contract.
+
+**Not claimed:** the live speech-end → first-audio numbers. They need a real session with the new `user_speech_end` + `first_audio_handed_to_livekit` pair, and step 13's A/B needs provider spend.
+
+---
+
 ## 0. System map
 
 ### Runtime topology

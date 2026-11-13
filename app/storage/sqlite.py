@@ -2,18 +2,12 @@ import asyncio
 import json
 import time
 from pathlib import Path
-from typing import Protocol
 from uuid import UUID
 
 import aiosqlite
 
 from app.storage.chat_repository import CHAT_SCHEMA
 from app.storage.models import Utterance
-
-
-class TranscriptStore(Protocol):
-    async def upsert_utterance(self, item: Utterance) -> None: ...
-    async def transcript(self, sid: str) -> list[dict]: ...
 
 
 class Store:

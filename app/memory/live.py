@@ -79,16 +79,45 @@ class MeetingLink:
                 await file.write(json.dumps(event, ensure_ascii=False) + '\n')
                 await file.flush()
 
+    # 408/429 are the only 4xx that can succeed on retry. Everything else is terminal:
+    # retrying a 404 (deleted meeting) or a 401 (rotated key) parked the only outbox
+    # reader forever, and once pending filled (256) every later record was diverted to
+    # the journal and never replayed.
+    _TRANSIENT_STATUSES = frozenset({408, 429})
+
+    @staticmethod
+    def _retry_delay(attempt: int, retry_after: str) -> float:
+        if retry_after.strip().isdigit():
+            return min(30.0, max(1.0, float(retry_after)))
+        return min(30.0, 2.0 ** min(attempt, 5))
+
     async def transmit(self, event: dict) -> None:
+        attempt = 0
         while True:
             try:
                 response = await self.http.post(self.url + '/conversation', headers=self.headers,
                                                 json=event, timeout=4)
+                if (400 <= response.status_code < 500
+                        and response.status_code not in self._TRANSIENT_STATUSES):
+                    # Terminal: the event stays on disk, only the cursor moves past it.
+                    self.telemetry.emit('conversation_persistence_rejected',
+                                        status=response.status_code)
+                    log.error('conversation_persistence_rejected',
+                              extra={'session_id': self.sid,
+                                     'event_id': event.get('event_key'),
+                                     'error_type': f'http_{response.status_code}'})
+                    return
                 response.raise_for_status()
+                if attempt:
+                    self.telemetry.emit('conversation_persistence_recovered', attempts=attempt)
                 return
+            except httpx.HTTPStatusError as error:
+                delay = self._retry_delay(attempt, error.response.headers.get('Retry-After', ''))
             except httpx.HTTPError:
-                self.telemetry.emit('conversation_persistence_retry')
-                await asyncio.sleep(1)
+                delay = self._retry_delay(attempt, '')
+            attempt += 1
+            self.telemetry.emit('conversation_persistence_retry', attempts=attempt)
+            await asyncio.sleep(delay)
 
     async def persist(self) -> None:
         # Disk persistence must never wait for the API to come back online.

@@ -1,5 +1,4 @@
 import asyncio
-import hashlib
 import json
 import logging
 import time
@@ -144,7 +143,3 @@ class EventProcessor:
         self.stopping = True
         if self.task:
             await self.task
-
-
-def event_digest(payload: dict) -> str:
-    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()

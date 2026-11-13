@@ -38,6 +38,8 @@ from app.workflows.chat_tools import ChatToolsWorkflow
 
 log = logging.getLogger(__name__)
 
+SUPERVISOR_INTERVAL_SECONDS = 15
+
 
 class ChatToolRequest(BaseModel):
     model_config = {'extra': 'forbid'}
@@ -126,11 +128,15 @@ def create_app(settings: Settings | None = None, livekit=None, recall=None, chat
             app.state.chat = ChatService(app.state.store, app.state.recall, http, s, chat_responder)
             await app.state.chat.start()
             app.state.monitor_errors = 0
+            app.state.empty_finals = set()
+            app.state.monitor_stopped = False
             monitor = asyncio.create_task(supervise(app, s), name='meeting-supervisor')
             app.state.monitor = monitor
+            monitor.add_done_callback(lambda task: _restart_supervisor(app, s, task))
             try:
                 yield
             finally:
+                app.state.monitor_stopped = True
                 monitor.cancel()
                 await asyncio.gather(monitor, return_exceptions=True)
                 await app.state.events.close()
@@ -466,51 +472,87 @@ def create_app(settings: Settings | None = None, livekit=None, recall=None, chat
     return app
 
 
+def _restart_supervisor(app: FastAPI, s: Settings, task: asyncio.Task) -> None:
+    """Supervision must outlive its own loop; a dead monitor stops expiry and reconcile."""
+    if task.cancelled() or app.state.monitor_stopped:
+        return
+    error = task.exception()
+    log.error('meeting_supervisor_stopped',
+              extra={'error_type': type(error).__name__ if error else 'none'})
+    app.state.monitor = asyncio.create_task(supervise(app, s), name='meeting-supervisor-restarted')
+    app.state.monitor.add_done_callback(lambda inner: _restart_supervisor(app, s, inner))
+
+
 async def supervise(app: FastAPI, s: Settings) -> None:
     while True:
-        store, recall, lk = app.state.store, app.state.recall, app.state.lk
-        meetings = await store.rows("SELECT * FROM meetings WHERE status != 'failed'")
-        for m in meetings:
-            sid = m['id']
-            try:
-                if m['status'] not in {'left', 'done'}:
-                    if time.time() > m['expires']:
-                        if m['bot_id']:
-                            await recall.leave(m['bot_id'])
-                        await store.update(sid, 'left')
-                        await lk.cleanup(sid)
-                        continue
+        try:
+            await supervise_once(app, s)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            # store.rows() and purge() used to sit outside the per-meeting handler, so one
+            # "database is locked" or disk-full killed expiry, leave and reconcile for the
+            # whole process lifetime with no restart.
+            app.state.monitor_errors += 1
+            log.error('meeting_supervision_cycle_failed',
+                      extra={'error_type': type(exc).__name__})
+        await asyncio.sleep(SUPERVISOR_INTERVAL_SECONDS)
+
+
+async def supervise_once(app: FastAPI, s: Settings) -> None:
+    store, recall, lk = app.state.store, app.state.recall, app.state.lk
+    meetings = await store.rows("SELECT * FROM meetings WHERE status != 'failed'")
+    for m in meetings:
+        sid = m['id']
+        try:
+            if m['status'] not in {'left', 'done'}:
+                if time.time() > m['expires']:
                     if m['bot_id']:
-                        bot = await recall.status(m['bot_id'])
-                        changes = bot.get('status_changes', [])
-                        status = changes[-1]['code'] if changes else m['status']
-                        await store.update(sid, status)
-                        if status in {'done', 'fatal'}:
-                            await store.update(sid, 'done')
-                            await lk.cleanup(sid)
-                        else:
-                            await lk.ensure(m)
-                    elif m['mode'] == 'local':
-                        await lk.ensure(m)
+                        await recall.leave(m['bot_id'])
+                    await store.update(sid, 'left')
+                    await lk.cleanup(sid)
+                    continue
                 if m['bot_id']:
-                    marker = await store.rows("SELECT text FROM memory WHERE meeting_id=? AND kind='reconciled'", (sid,))
-                    if marker:
-                        continue
-                    final = await recall.final_transcript(m['bot_id'])
-                    if final is not None:
-                        items = [u for i, data in enumerate(final)
-                                 if (u := parse_utterance(sid, m['bot_id'], data, f'final-{i}',
-                                                          source='recall-final'))]
-                        if final and not items:
-                            raise ValueError('Final transcript schema did not contain utterances')
-                        await store.reconcile(sid, items)
-                        await store.execute('INSERT OR IGNORE INTO memory VALUES (?,?,?)',
-                                             (sid, 'reconciled', 'true'))
-            except asyncio.CancelledError:
-                raise
-            except Exception as exc:
-                app.state.monitor_errors += 1
-                log.error('meeting_supervision_failed', extra={'session_id': sid,
-                                                             'error_type': type(exc).__name__})
-        await store.purge(s.retention_days)
-        await asyncio.sleep(15)
+                    bot = await recall.status(m['bot_id'])
+                    changes = bot.get('status_changes', [])
+                    status = changes[-1]['code'] if changes else m['status']
+                    await store.update(sid, status)
+                    if status in {'done', 'fatal'}:
+                        await store.update(sid, 'done')
+                        await lk.cleanup(sid)
+                    else:
+                        await lk.ensure(m)
+                elif m['mode'] == 'local':
+                    await lk.ensure(m)
+            if m['bot_id']:
+                marker = await store.rows("SELECT text FROM memory WHERE meeting_id=? AND kind='reconciled'", (sid,))
+                if marker:
+                    continue
+                final = await recall.final_transcript(m['bot_id'])
+                if final is not None and not final:
+                    # An empty provider artifact is not an instruction to erase stored
+                    # speech: reconcile(sid, []) deletes every utterance and writes the
+                    # 'reconciled' marker that blocks all later inserts (sqlite.py:112,
+                    # events.py:102-105). Keep the current data and retry only if the
+                    # provider later returns actual content.
+                    if sid not in app.state.empty_finals:
+                        app.state.empty_finals.add(sid)
+                        log.warning('final_transcript_empty', extra={'session_id': sid})
+                    continue
+                if final is not None:
+                    items = [u for i, data in enumerate(final)
+                             if (u := parse_utterance(sid, m['bot_id'], data, f'final-{i}',
+                                                      source='recall-final'))]
+                    if final and not items:
+                        raise ValueError('Final transcript schema did not contain utterances')
+                    await store.reconcile(sid, items)
+                    app.state.empty_finals.discard(sid)
+                    await store.execute('INSERT OR IGNORE INTO memory VALUES (?,?,?)',
+                                         (sid, 'reconciled', 'true'))
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            app.state.monitor_errors += 1
+            log.error('meeting_supervision_failed', extra={'session_id': sid,
+                                                         'error_type': type(exc).__name__})
+    await store.purge(s.retention_days)

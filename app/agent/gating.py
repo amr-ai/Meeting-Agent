@@ -202,7 +202,39 @@ class ResponseGate:
         self.deadline = 0
         self.decided.set()
 
+    def decide(self) -> tuple[bool, str]:
+        """One-shot decision for a single generation. Synchronous: never waits.
+
+        The output gate used to await a transcript here, for up to 5 s, *after* the
+        model had already generated audio. The provider emits the final transcript only
+        when generation ends (realtime_api.py:1587-1603), so that wait could never be
+        satisfied in time; its only outcomes were added latency and a silently dropped
+        answer (26 of 193 generated responses never reached the caller).
+
+        Three outcomes are distinguished, because "no evidence yet" is not "denied":
+        a generation that starts before any transcript exists is cancelled and counted,
+        and it never mutates the permit state the next turn will inherit.
+        """
+        if self.silenced:
+            self.last_claim_reason = 'explicit_stop'
+            return False, self.last_claim_reason
+        if not self.decided.is_set() and not self.local:
+            self.last_claim_reason = 'undetermined'
+            return False, self.last_claim_reason
+        if not (self.available and self.tools_allowed()):
+            self.last_claim_reason = self.denial_reason()
+            return False, self.last_claim_reason
+        self.available = False
+        self.claimed = True
+        self.turn_committed = True
+        self.last_claim_reason = 'authorized'
+        return True, self.last_claim_reason
+
     async def claim(self) -> tuple[bool, int]:
+        """Blocking variant of decide(), kept for callers that can afford to wait.
+
+        NOT used by the audio path: waiting there is what caused the 5 s stall.
+        """
         if self.local and not self.silenced and not self.decided.is_set():
             self.decided.set()
         epoch = self.epoch
@@ -213,12 +245,8 @@ class ResponseGate:
             self.last_claim_reason = 'transcript_decision_timeout'
             return False, epoch
         # Bind waiting audio to the accepted transcript, not an activity hint.
-        epoch = self.epoch
-        allowed = stop_serial == self.stop_serial and self.available and self.tools_allowed()
-        self.last_claim_reason = ('authorized' if allowed else
-                                 'stop_invalidated_wait' if stop_serial != self.stop_serial else self.denial_reason())
-        if allowed:
-            self.available = False
-            self.claimed = True
-            self.turn_committed = True
-        return allowed, epoch
+        if stop_serial != self.stop_serial:
+            self.last_claim_reason = 'stop_invalidated_wait'
+            return False, self.epoch
+        allowed, _ = self.decide()
+        return allowed, self.epoch

@@ -248,38 +248,63 @@ class MeetingAgent(Agent):
         return await self.parallel.run(context, 'meeting_context',
             'Retrieving the requested meeting context in the background.', retrieve, silent=True)
 
+    def _cancel_generation(self, reason: str) -> None:
+        """Stop a generation that was never authorized, instead of buffering its audio."""
+        session = None
+        try:
+            session = self.session  # SDK property; raises when no activity is running
+        except (RuntimeError, AttributeError):
+            pass
+        if session is not None:
+            try:
+                session.interrupt(force=True)
+            except (RuntimeError, AttributeError):
+                self.telemetry.emit('generation_cancel_unavailable', reason=reason)
+        self.telemetry.emit('generation_cancelled', reason=reason)
+
     async def realtime_audio_output_node(self, audio: AsyncIterable[rtc.AudioFrame],
                                          model_settings: ModelSettings) -> AsyncIterator[rtc.AudioFrame]:
-        allowed, epoch = False, self.gate.epoch
-        first = True
-        published = False
+        """Authorize once per generation, before the first frame, without waiting.
+
+        Audio is either published immediately or the generation is cancelled. Nothing
+        is buffered while waiting for evidence that the provider only produces after
+        generation ends.
+        """
+        gate = self.gate
         turns = getattr(self, 'turns', None)
-        serial = turns.tool_serial if turns else 0
         generation = getattr(self, 'persona_generation', 0)
-        async for frame in audio:
-            if getattr(self, 'persona_switching', False) or generation != getattr(self, 'persona_generation', 0):
-                continue
-            if first:
-                self.telemetry.emit('first_generated_audio_observed')
-                self.telemetry.emit('response_gate_wait_started')
-                allowed, epoch = await self.gate.claim()
-                self.telemetry.emit('response_gate_decided', authorized=allowed,
-                                    reason=self.gate.last_claim_reason, epoch=epoch)
-            if (allowed and epoch == self.gate.epoch and self.gate.tools_allowed()
-                    and not getattr(self, 'persona_switching', False)
-                    and generation == getattr(self, 'persona_generation', 0)):
-                if first:
-                    # Observation is immediately before SDK publication, not a packet timestamp.
-                    self.telemetry.emit('first_audio_handed_to_livekit')
-                if first and turns:
-                    serial = turns.tool_serial
+        epoch = gate.epoch
+        serial = turns.tool_serial if turns else 0
+        published = False
+        decided = False
+        try:
+            async for frame in audio:
+                if (getattr(self, 'persona_switching', False)
+                        or generation != getattr(self, 'persona_generation', 0)):
+                    continue
+                if not decided:
+                    decided = True
+                    epoch = gate.epoch
+                    self.telemetry.emit('first_generated_audio_observed')
+                    allowed, reason = gate.decide()
+                    self.telemetry.emit('response_gate_decided', authorized=allowed,
+                                        reason=reason, epoch=epoch, gate_wait_ms=0)
+                    if not allowed:
+                        self._cancel_generation(reason)
+                        return
+                    if turns:
+                        serial = turns.tool_serial
+                    self.telemetry.emit('first_audio_handed_to_livekit', epoch=epoch)
+                if epoch != gate.epoch or not gate.tools_allowed():
+                    # Explicit stop or a newer turn revokes the rest of this stream.
+                    continue
                 self.published_audio = True
                 self.speaking_persona = getattr(self, 'persona', PERSONAS['khaled']).name
                 published = True
                 yield frame
-            first = False
-        if turns and published:
-            turns.audio_finished(epoch, serial)
+        finally:
+            if turns and published:
+                turns.audio_finished(epoch, serial)
 
 
 async def accept(request: JobRequest) -> None:

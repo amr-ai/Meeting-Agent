@@ -4,6 +4,22 @@ from collections import OrderedDict
 
 from app.agent.gating import normalize
 
+# Exact-match artefacts providers emit on silence. Bare acknowledgements such as
+# "thank you" / "شكرا" are deliberately absent: they are also genuine replies, and the
+# review of this change was right that a length or confidence rule would delete the
+# most important one-word utterances ("خالد", "اسكت", "أيوه"). Exemption runs first.
+NON_SPEECH_ARTIFACTS = frozenset({
+    'thank you for watching', 'thanks for watching', 'thank you watching',
+    'شكرا للمشاهدة', 'شكرا لمشاهدتكم', 'شكرا على المشاهدة', 'شكراً للمشاهدة',
+})
+
+
+def is_non_speech_artifact(text: str, gate) -> bool:
+    """True only for an exact non-speech phrase that is neither a wake name nor a stop."""
+    if gate.has_wake_name(text) or gate.is_stop_request(text, final=True):
+        return False
+    return ' '.join(normalize(text).split()).strip(' .!?،؟') in NON_SPEECH_ARTIFACTS
+
 
 class VoiceTurns:
     # This bounds an unconfirmed activity hint, NOT a conversation or session.
@@ -77,8 +93,11 @@ class VoiceTurns:
         text = event.transcript.strip()
         if not any(char.isalnum() for char in text):
             return False
-        item_id = getattr(event, 'item_id', None)
         final = getattr(event, 'is_final', True)
+        if final and is_non_speech_artifact(text, self.agent.gate):
+            self.agent.telemetry.emit('transcript_artifact_ignored')
+            return False
+        item_id = getattr(event, 'item_id', None)
         signature = (text, final)
         if item_id is not None:
             previous = self.seen_inputs.get(item_id)

@@ -130,6 +130,10 @@ def create_app(settings: Settings | None = None, livekit=None, recall=None, chat
             app.state.monitor_errors = 0
             app.state.empty_finals = set()
             app.state.monitor_stopped = False
+            # Built once: compiling these per request cost 15-72 ms of event-loop CPU
+            # on every voice chat-tool and screen call before any work started.
+            app.state.chat_tools = ChatToolsWorkflow(app.state.store, app.state.chat.sender)
+            app.state.screen_workflow = ScreenWorkflow(app.state.screens, app.state.vision, s)
             monitor = asyncio.create_task(supervise(app, s), name='meeting-supervisor')
             app.state.monitor = monitor
             monitor.add_done_callback(lambda task: _restart_supervisor(app, s, task))
@@ -314,8 +318,8 @@ def create_app(settings: Settings | None = None, livekit=None, recall=None, chat
     @app.post('/api/meetings/{sid}/chat/tools', dependencies=[Depends(authorized)])
     async def chat_tool(sid: str, body: ChatToolRequest):
         await meeting(sid)
-        workflow = ChatToolsWorkflow(app.state.store, app.state.chat.sender, sid)
-        return await workflow.run(body.operation, body.model_dump(exclude={'operation'}, exclude_none=True), authorized=True)
+        return await app.state.chat_tools.run(body.operation, body.model_dump(exclude={'operation'}, exclude_none=True),
+                                              authorized=True, sid=sid)
 
     @app.get('/api/meetings/{sid}/chat/jobs', dependencies=[Depends(authorized)])
     async def chat_jobs(sid: str):
@@ -411,8 +415,7 @@ def create_app(settings: Settings | None = None, livekit=None, recall=None, chat
     @app.post('/api/meetings/{sid}/vision', dependencies=[Depends(authorized)])
     async def analyze_screen(sid: str, body: VisionRequest):
         await meeting(sid)
-        workflow = ScreenWorkflow(app.state.screens, app.state.vision, s)
-        return await workflow.run(sid, body.model_dump(exclude_none=True))
+        return await app.state.screen_workflow.run(sid, body.model_dump(exclude_none=True))
 
     @app.get('/api/meetings/{sid}/screens', dependencies=[Depends(authorized)])
     async def screens(sid: str):
@@ -422,8 +425,7 @@ def create_app(settings: Settings | None = None, livekit=None, recall=None, chat
     @app.post('/api/meetings/{sid}/screen-frame', dependencies=[Depends(authorized)])
     async def capture_screen(sid: str, body: VisionRequest):
         await meeting(sid)
-        workflow = ScreenWorkflow(app.state.screens, app.state.vision, s)
-        return await workflow.capture(sid, body.model_dump(exclude_none=True))
+        return await app.state.screen_workflow.capture(sid, body.model_dump(exclude_none=True))
 
     @app.websocket('/ws/recall-video/{sid}/')
     async def video_socket(websocket: WebSocket, sid: str):

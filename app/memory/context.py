@@ -1,8 +1,42 @@
+import asyncio
 import json
+from collections import OrderedDict
 
 from app.memory.archive import archived_context
 from app.storage.chat_repository import ChatRepository
 from app.storage.sqlite import Store
+
+# Decoded utterances per meeting, keyed by a signature the database itself produces.
+# Bounded so a long-lived API process serving many meetings cannot grow without limit.
+_DECODED: OrderedDict[str, tuple[tuple[int, float, int], list[dict]]] = OrderedDict()
+_DECODED_LIMIT = 64
+
+
+def _decode(payloads: list[str]) -> list[dict]:
+    return [json.loads(payload) for payload in payloads]
+
+
+async def decoded_utterances(store: Store, sid: str) -> list[dict]:
+    """Decoded utterances, with the JSON decode moved off the event loop and cached.
+
+    The cache key is (row count, last start, final count), so inserting an utterance or
+    re-finalising one changes the key on the next call. There is no TTL: a stale read is
+    impossible, and a meeting that stops speaking costs one COUNT query.
+    """
+    stats_of = getattr(store, 'transcript_stats', None)
+    if stats_of is None:  # lightweight fakes in existing tests
+        return await store.transcript(sid)
+    stats = await stats_of(sid)
+    cached = _DECODED.get(sid)
+    if cached is not None and cached[0] == stats:
+        _DECODED.move_to_end(sid)
+        return cached[1]
+    decoded = await asyncio.to_thread(_decode, await store.transcript_payloads(sid))
+    _DECODED[sid] = (stats, decoded)
+    _DECODED.move_to_end(sid)
+    while len(_DECODED) > _DECODED_LIMIT:
+        _DECODED.popitem(last=False)
+    return decoded
 
 
 async def context(store: Store, sid: str, query: str = '', limit: int = 8000) -> str:
@@ -18,7 +52,7 @@ async def context(store: Store, sid: str, query: str = '', limit: int = 8000) ->
             return text
         return text[-max(0, limit - len(visual_text)):] + visual_text
 
-    utterances = [u for u in await store.transcript(sid) if u['final']]
+    utterances = [u for u in await decoded_utterances(store, sid) if u['final']]
     # Lightweight lexical retrieval plus recent turns; no embeddings or additional LLM.
     terms = {t.casefold() for t in query.split() if len(t) > 2}
     ranked = sorted(utterances, key=lambda u: sum(t in u['text'].casefold() for t in terms),

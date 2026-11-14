@@ -117,6 +117,18 @@ class Store:
         rows = await self.rows('SELECT payload FROM utterances WHERE meeting_id=? ORDER BY start', (sid,))
         return [json.loads(row['payload']) for row in rows]
 
+    async def transcript_payloads(self, sid: str) -> list[str]:
+        """Undecoded payloads, so the caller can decode off the event loop."""
+        rows = await self.rows('SELECT payload FROM utterances WHERE meeting_id=? ORDER BY start', (sid,))
+        return [row['payload'] for row in rows]
+
+    async def transcript_stats(self, sid: str) -> tuple[int, float, int]:
+        """Cheap invalidation key for a cached decoded transcript: inserted, re-finalised."""
+        rows = await self.rows('''SELECT COUNT(*) AS count, COALESCE(MAX(start),0) AS last,
+          COALESCE(SUM(final),0) AS finals FROM utterances WHERE meeting_id=?''', (sid,))
+        row = rows[0]
+        return row['count'], row['last'], row['finals']
+
     async def add_conversation(self, sid: str, event_key: str, role: str, text: str,
                                speaker: str = 'Unknown', participant_id: str | None = None,
                                source: str = 'gemini-live', interrupted: bool = False,

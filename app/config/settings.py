@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     visual_reply_seconds: float = Field(default=30.0, ge=5, le=120)
     persona_setup_seconds: float = Field(default=12.0, ge=5, le=60)
     context_poll_seconds: float = Field(default=.4, ge=.1, le=5)
+    context_idle_poll_seconds: float = Field(default=2.0, ge=.2, le=30)
     agent_name: str = 'meeting-agent'
     assistant_name: str = 'Khaled'
     wake_names: str = 'Khaled,Khalid,خالد,يا خالد'

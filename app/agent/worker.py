@@ -26,6 +26,7 @@ from livekit.agents.llm import ToolFlag, ToolResult
 from livekit.agents.voice import ModelSettings
 from livekit.plugins import google
 
+from app._tasks import spawn
 from app.agent.chat_tools import VoiceChatTools
 from app.agent.gating import ResponseGate
 from app.agent.parallel_tools import ParallelTools
@@ -503,7 +504,7 @@ async def entrypoint(ctx: JobContext):
                     }).encode(), reliable=True, topic='voice-status')
                 except Exception:
                     log.warning('voice_error_notification_failed')
-            asyncio.create_task(notify_browser())
+            spawn(notify_browser(), name='voice-error-notify')
 
         @session.on('close')
         def close(_event):

@@ -215,22 +215,35 @@ class MeetingLink:
                                 reported_speakers=len(active), transcript_updates=len(annotations))
         self.cursor = data['cursor']
 
+    def _poll_interval(self) -> float:
+        """Fast only while a turn is actually in play; 2.5 Hz forever is pure waste."""
+        agent = self.agent
+        busy = (getattr(agent, 'user_speaking', False)
+                or getattr(getattr(agent, 'turns', None), 'awaiting_transcript', False)
+                or getattr(agent, 'is_speaking', False))
+        return (self.settings.context_poll_seconds if busy
+                else self.settings.context_idle_poll_seconds)
+
     async def synchronize(self) -> None:
-        failed = False
+        failures = 0
         while True:
             try:
                 response = await self.http.get(self.url + '/live-context', headers=self.headers,
                                                params={'after': self.cursor}, timeout=4)
                 response.raise_for_status()
                 await self.apply(response.json())
-                if failed:
-                    self.telemetry.emit('meeting_context_sync_recovered')
-                failed = False
+                if failures:
+                    self.telemetry.emit('meeting_context_sync_recovered', failures=failures)
+                failures = 0
             except Exception as exc:
-                if not failed:
+                failures += 1
+                if failures == 1:
                     self.telemetry.emit('meeting_context_sync_retry', error_type=type(exc).__name__)
-                failed = True
-            await asyncio.sleep(self.settings.context_poll_seconds)
+            delay = self._poll_interval()
+            if failures:
+                # An outage must not be answered with a 9,000 request/hour hammer.
+                delay = min(30.0, delay * 2 ** min(failures, 6))
+            await asyncio.sleep(delay)
 
     async def close(self) -> None:
         try:

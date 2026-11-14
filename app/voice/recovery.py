@@ -226,11 +226,11 @@ class RecoveringRealtimeSession(RealtimeSession):
 
 
 class RecoveringRealtimeModel(RealtimeModel):
-    async def change_persona(self, voice, instructions):
+    async def change_persona(self, voice, instructions, deadline_seconds=12):
         sessions = [session for session in self._sessions if not session._msg_ch.closed]
         if len(sessions) != 1:
             raise RuntimeError('Expected one active voice session')
-        await sessions[0].change_persona(voice, instructions)
+        await sessions[0].change_persona(voice, instructions, deadline_seconds=deadline_seconds)
         self._opts.voice = voice
 
     def push_screen_image(self, call_id, encoded, question=''):

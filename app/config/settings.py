@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     gemini_model: str = 'gemini-3.8-live'
     gemini_api_version: str = 'v1beta'
     gemini_silence_duration_ms: int = Field(default=300, ge=100, le=2000)
+    # Unset by default: the provider's own default applies. Native-audio thinking is the
+    # largest single suspect behind the measured 11 s speech-end -> first-audio figure,
+    # but server support for an explicit budget must be probed first
+    # (scripts/check_thinking.py) before it becomes a default.
+    gemini_thinking_budget: int | None = Field(default=None, ge=0, le=24576)
     # High made every provider VAD trigger a full barge-in: the SDK interrupts on the
     # speech-start event with no min_duration check on the realtime path
     # (agent_activity.py:2271-2293 vs :2520), so noise cut the agent off mid-sentence.
@@ -27,6 +32,14 @@ class Settings(BaseSettings):
     voice_noise_suppression: bool = True
     meeting_followup_seconds: float = Field(default=30, ge=0, le=120)
     meeting_followup_until_stop: bool = True
+    # Turn timing in one place. These reproduce the previously hardcoded literals
+    # exactly; two different "the conversation is still open" windows used to disagree.
+    turn_decision_seconds: float = Field(default=5.0, ge=1, le=30)
+    turn_candidate_seconds: float = Field(default=5.0, ge=1, le=30)
+    turn_permit_seconds: float = Field(default=45.0, ge=5, le=600)
+    visual_reply_seconds: float = Field(default=30.0, ge=5, le=120)
+    persona_setup_seconds: float = Field(default=12.0, ge=5, le=60)
+    context_poll_seconds: float = Field(default=.4, ge=.1, le=5)
     agent_name: str = 'meeting-agent'
     assistant_name: str = 'Khaled'
     wake_names: str = 'Khaled,Khalid,خالد,يا خالد'

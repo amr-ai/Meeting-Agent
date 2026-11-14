@@ -59,7 +59,10 @@ class PersonaSwitch:
                 if session and session.output.audio:
                     session.output.audio.clear_buffer()
                 instructions = a.instructions_for(target)
-                await a.native_tool_model.change_persona(persona.voice, instructions)
+                settings = getattr(a, 'settings', None)
+                await a.native_tool_model.change_persona(
+                    persona.voice, instructions,
+                    getattr(settings, 'persona_setup_seconds', 12))
                 transport_changed = True
                 # Public Agent API keeps SDK's agent state consistent; transport already has this value.
                 await a.update_instructions(instructions)

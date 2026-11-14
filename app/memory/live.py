@@ -230,7 +230,7 @@ class MeetingLink:
                 if not failed:
                     self.telemetry.emit('meeting_context_sync_retry', error_type=type(exc).__name__)
                 failed = True
-            await asyncio.sleep(.4)
+            await asyncio.sleep(self.settings.context_poll_seconds)
 
     async def close(self) -> None:
         try:

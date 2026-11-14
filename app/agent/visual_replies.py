@@ -24,7 +24,9 @@ class VisualReplies:
 
     async def deliver(self, question, serial, epoch, call_id=''):
         started = time.monotonic()
-        deadline, quiet_since = started + 30, None
+        settings = getattr(self.agent, 'settings', None)
+        budget = getattr(settings, 'visual_reply_seconds', 30)
+        deadline, quiet_since = started + budget, None
         outcome = 'invalidated_or_deadline'
         self.agent.telemetry.emit('visual_reply_wait_started', call_id=call_id, epoch=epoch, stop_serial=serial)
         speech = waiter = None

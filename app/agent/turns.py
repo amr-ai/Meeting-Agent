@@ -27,6 +27,9 @@ class VoiceTurns:
 
     def __init__(self, agent):
         self.agent = agent
+        settings = getattr(agent, 'settings', None)
+        if settings is not None:
+            self.candidate_timeout = getattr(settings, 'turn_candidate_seconds', self.candidate_timeout)
         self.input_id = None
         self.awaiting_transcript = False
         self.awaiting_tool_reply = False

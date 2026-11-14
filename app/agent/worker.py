@@ -53,11 +53,18 @@ log = logging.getLogger(__name__)
 
 
 def create_model(settings: Settings) -> google.realtime.RealtimeModel:
+    # Only sent when explicitly configured, so the default path is byte-identical to
+    # the previously verified connection.
+    options = {}
+    if settings.gemini_thinking_budget is not None:
+        options['thinking_config'] = types.ThinkingConfig(
+            thinking_budget=settings.gemini_thinking_budget)
     return RecoveringRealtimeModel(
         model=settings.gemini_model, api_key=settings.google_api_key.get_secret_value(),
         voice=settings.gemini_voice, api_version=settings.gemini_api_version,
         http_options=google_http_options(),
         modalities=[types.Modality.AUDIO],
+        **options,
         input_audio_transcription=types.AudioTranscriptionConfig(
             language_codes=[code.strip() for code in settings.input_languages.split(',') if code.strip()],
             custom_vocabulary=[name.strip() for p in PERSONAS.values() for name in p.names.split(',')]),
@@ -328,7 +335,9 @@ async def entrypoint(ctx: JobContext):
     sid = str(UUID(meta['session_id']))
     gate = ResponseGate(s.wake_names, local=meta['mode'] == 'local',
                         followup_seconds=s.meeting_followup_seconds if meta['mode'] == 'meeting' else 0,
-                        followup_until_stop=s.meeting_followup_until_stop and meta['mode'] == 'meeting')
+                        followup_until_stop=s.meeting_followup_until_stop and meta['mode'] == 'meeting',
+                        decision_timeout=s.turn_decision_seconds,
+                        permit_seconds=s.turn_permit_seconds)
     telemetry = Telemetry(sid, s.latency_path)
     telemetry.start()
     telemetry.emit('runtime_started', runtime_revision=await asyncio.to_thread(runtime_revision, ROOT),

@@ -12,10 +12,12 @@ def normalize(text: str) -> str:
 class ResponseGate:
     """Conservative one-utterance authorization, separate from model instructions."""
     def __init__(self, names: str, local: bool = False, decision_timeout: float = 5.0,
-                 followup_seconds: float = 0, followup_until_stop: bool = False):
+                 followup_seconds: float = 0, followup_until_stop: bool = False,
+                 permit_seconds: float = 45.0):
         self.set_names(names)
         self.local = local
         self.decision_timeout = decision_timeout
+        self.permit_seconds = permit_seconds
         self.claimed = False
         self.turn_committed = False
         self.named_this_turn = False
@@ -49,7 +51,7 @@ class ResponseGate:
             self.silenced = False
         self.authorized = (self.local and not self.silenced) or self.followup_allowed()
         self.available = self.authorized
-        self.deadline = ((time.monotonic() + 45 if self.followup_until_stop else self.active_until)
+        self.deadline = ((time.monotonic() + self.permit_seconds if self.followup_until_stop else self.active_until)
                          if self.authorized else 0.0)
         self.decided.clear()
         self.claimed = False
@@ -100,7 +102,7 @@ class ResponseGate:
             return self.authorized
         self.authorized = addressed
         self.available = self.authorized and not self.claimed
-        self.deadline = time.monotonic() + 45
+        self.deadline = time.monotonic() + self.permit_seconds
         if addressed and (named or followup):
             self.active_until = time.monotonic() + self.followup_seconds
         self.decided.set()
@@ -137,7 +139,7 @@ class ResponseGate:
         self.turn_committed = True
         self.available = True
         self.claimed = False
-        self.deadline = time.monotonic() + 45
+        self.deadline = time.monotonic() + self.permit_seconds
         self.decided.set()
         return True
 
@@ -146,7 +148,7 @@ class ResponseGate:
             return False
         self.authorized = self.available = self.turn_committed = True
         self.claimed = False
-        self.deadline = time.monotonic() + 45
+        self.deadline = time.monotonic() + self.permit_seconds
         self.decided.set()
         return True
 

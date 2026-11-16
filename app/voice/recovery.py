@@ -47,6 +47,8 @@ class RecoveringRealtimeSession(RealtimeSession):
         self._persona_failed = False
         factory = getattr(model, 'audio_filter_factory', None)
         self._input_filter = factory() if factory else None
+        self._speech_timeline = getattr(model, 'speech_timeline', None)
+        self._speech_timeline_failed = False
         super().__init__(model)
 
     async def change_persona(self, voice, instructions, deadline_seconds=12):
@@ -110,6 +112,14 @@ class RecoveringRealtimeSession(RealtimeSession):
                 log.warning('audio_input_diagnostics_disabled')
         if self._input_filter is not None:
             frame = self._input_filter.process(frame)
+        # Measurement of what the provider actually receives. Observes only: the frame
+        # is forwarded unchanged and in order, and a failure disables diagnostics.
+        if self._speech_timeline is not None and not self._speech_timeline_failed:
+            try:
+                self._speech_timeline.push(frame)
+            except Exception:
+                self._speech_timeline_failed = True
+                log.warning('speech_timeline_disabled')
         super().push_audio(frame)
 
     def push_screen_image(self, call_id, encoded, question=''):
@@ -216,11 +226,11 @@ class RecoveringRealtimeSession(RealtimeSession):
 
 
 class RecoveringRealtimeModel(RealtimeModel):
-    async def change_persona(self, voice, instructions):
+    async def change_persona(self, voice, instructions, deadline_seconds=12):
         sessions = [session for session in self._sessions if not session._msg_ch.closed]
         if len(sessions) != 1:
             raise RuntimeError('Expected one active voice session')
-        await sessions[0].change_persona(voice, instructions)
+        await sessions[0].change_persona(voice, instructions, deadline_seconds=deadline_seconds)
         self._opts.voice = voice
 
     def push_screen_image(self, call_id, encoded, question=''):

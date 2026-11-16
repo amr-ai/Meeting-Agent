@@ -12,10 +12,12 @@ def normalize(text: str) -> str:
 class ResponseGate:
     """Conservative one-utterance authorization, separate from model instructions."""
     def __init__(self, names: str, local: bool = False, decision_timeout: float = 5.0,
-                 followup_seconds: float = 0, followup_until_stop: bool = False):
+                 followup_seconds: float = 0, followup_until_stop: bool = False,
+                 permit_seconds: float = 45.0):
         self.set_names(names)
         self.local = local
         self.decision_timeout = decision_timeout
+        self.permit_seconds = permit_seconds
         self.claimed = False
         self.turn_committed = False
         self.named_this_turn = False
@@ -37,6 +39,7 @@ class ResponseGate:
         self.available = local
         self.deadline = 0.0
         self.decided = asyncio.Event()
+        self.last_claim_reason = 'no_decision'
 
     def set_names(self, names: str) -> None:
         variants = [re.escape(normalize(n.strip())) for n in names.split(',') if n.strip()]
@@ -48,7 +51,7 @@ class ResponseGate:
             self.silenced = False
         self.authorized = (self.local and not self.silenced) or self.followup_allowed()
         self.available = self.authorized
-        self.deadline = ((time.monotonic() + 45 if self.followup_until_stop else self.active_until)
+        self.deadline = ((time.monotonic() + self.permit_seconds if self.followup_until_stop else self.active_until)
                          if self.authorized else 0.0)
         self.decided.clear()
         self.claimed = False
@@ -99,7 +102,7 @@ class ResponseGate:
             return self.authorized
         self.authorized = addressed
         self.available = self.authorized and not self.claimed
-        self.deadline = time.monotonic() + 45
+        self.deadline = time.monotonic() + self.permit_seconds
         if addressed and (named or followup):
             self.active_until = time.monotonic() + self.followup_seconds
         self.decided.set()
@@ -110,6 +113,19 @@ class ResponseGate:
         if allowed and not self.local and not self.named_this_turn and not self.turn_committed:
             return self.followup_allowed()
         return allowed
+
+    def denial_reason(self) -> str:
+        if self.silenced:
+            return 'explicit_stop'
+        if self.claimed:
+            return 'permit_consumed'
+        if self.authorized and time.monotonic() >= self.deadline and not self.local:
+            return 'permit_expired'
+        if self.reported_speaker_id == '__multiple__' and not self.named_this_turn:
+            return 'overlapping_speakers'
+        if self.owner_id and self.reported_speaker_id != self.owner_id and not self.named_this_turn:
+            return 'different_reported_speaker'
+        return 'not_addressed'
 
     def commit_turn(self) -> bool:
         if not self.tools_allowed():
@@ -123,7 +139,7 @@ class ResponseGate:
         self.turn_committed = True
         self.available = True
         self.claimed = False
-        self.deadline = time.monotonic() + 45
+        self.deadline = time.monotonic() + self.permit_seconds
         self.decided.set()
         return True
 
@@ -132,7 +148,7 @@ class ResponseGate:
             return False
         self.authorized = self.available = self.turn_committed = True
         self.claimed = False
-        self.deadline = time.monotonic() + 45
+        self.deadline = time.monotonic() + self.permit_seconds
         self.decided.set()
         return True
 
@@ -188,7 +204,39 @@ class ResponseGate:
         self.deadline = 0
         self.decided.set()
 
+    def decide(self) -> tuple[bool, str]:
+        """One-shot decision for a single generation. Synchronous: never waits.
+
+        The output gate used to await a transcript here, for up to 5 s, *after* the
+        model had already generated audio. The provider emits the final transcript only
+        when generation ends (realtime_api.py:1587-1603), so that wait could never be
+        satisfied in time; its only outcomes were added latency and a silently dropped
+        answer (26 of 193 generated responses never reached the caller).
+
+        Three outcomes are distinguished, because "no evidence yet" is not "denied":
+        a generation that starts before any transcript exists is cancelled and counted,
+        and it never mutates the permit state the next turn will inherit.
+        """
+        if self.silenced:
+            self.last_claim_reason = 'explicit_stop'
+            return False, self.last_claim_reason
+        if not self.decided.is_set() and not self.local:
+            self.last_claim_reason = 'undetermined'
+            return False, self.last_claim_reason
+        if not (self.available and self.tools_allowed()):
+            self.last_claim_reason = self.denial_reason()
+            return False, self.last_claim_reason
+        self.available = False
+        self.claimed = True
+        self.turn_committed = True
+        self.last_claim_reason = 'authorized'
+        return True, self.last_claim_reason
+
     async def claim(self) -> tuple[bool, int]:
+        """Blocking variant of decide(), kept for callers that can afford to wait.
+
+        NOT used by the audio path: waiting there is what caused the 5 s stall.
+        """
         if self.local and not self.silenced and not self.decided.is_set():
             self.decided.set()
         epoch = self.epoch
@@ -196,12 +244,11 @@ class ResponseGate:
         try:
             await asyncio.wait_for(self.decided.wait(), timeout=self.decision_timeout)
         except TimeoutError:
+            self.last_claim_reason = 'transcript_decision_timeout'
             return False, epoch
         # Bind waiting audio to the accepted transcript, not an activity hint.
-        epoch = self.epoch
-        allowed = stop_serial == self.stop_serial and self.available and self.tools_allowed()
-        if allowed:
-            self.available = False
-            self.claimed = True
-            self.turn_committed = True
-        return allowed, epoch
+        if stop_serial != self.stop_serial:
+            self.last_claim_reason = 'stop_invalidated_wait'
+            return False, self.epoch
+        allowed, _ = self.decide()
+        return allowed, self.epoch

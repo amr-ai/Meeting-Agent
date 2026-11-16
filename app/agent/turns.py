@@ -4,10 +4,32 @@ from collections import OrderedDict
 
 from app.agent.gating import normalize
 
+# Exact-match artefacts providers emit on silence. Bare acknowledgements such as
+# "thank you" / "شكرا" are deliberately absent: they are also genuine replies, and the
+# review of this change was right that a length or confidence rule would delete the
+# most important one-word utterances ("خالد", "اسكت", "أيوه"). Exemption runs first.
+NON_SPEECH_ARTIFACTS = frozenset({
+    'thank you for watching', 'thanks for watching', 'thank you watching',
+    'شكرا للمشاهدة', 'شكرا لمشاهدتكم', 'شكرا على المشاهدة', 'شكراً للمشاهدة',
+})
+
+
+def is_non_speech_artifact(text: str, gate) -> bool:
+    """True only for an exact non-speech phrase that is neither a wake name nor a stop."""
+    if gate.has_wake_name(text) or gate.is_stop_request(text, final=True):
+        return False
+    return ' '.join(normalize(text).split()).strip(' .!?،؟') in NON_SPEECH_ARTIFACTS
+
 
 class VoiceTurns:
+    # This bounds an unconfirmed activity hint, NOT a conversation or session.
+    candidate_timeout = 5.0
+
     def __init__(self, agent):
         self.agent = agent
+        settings = getattr(agent, 'settings', None)
+        if settings is not None:
+            self.candidate_timeout = getattr(settings, 'turn_candidate_seconds', self.candidate_timeout)
         self.input_id = None
         self.awaiting_transcript = False
         self.awaiting_tool_reply = False
@@ -18,6 +40,26 @@ class VoiceTurns:
         self.last_input_final = False
         self.pending_semantic_stop = None
         self.seen_inputs = OrderedDict()
+
+    @property
+    def awaiting_transcript(self):
+        if self._awaiting_transcript and time.monotonic() >= self.candidate_deadline:
+            self.finish_candidate('transcript_timeout')
+        return self._awaiting_transcript
+
+    @awaiting_transcript.setter
+    def awaiting_transcript(self, value):
+        self._awaiting_transcript = value
+        self.candidate_deadline = time.monotonic() + self.candidate_timeout if value else 0
+
+    def finish_candidate(self, reason):
+        if self._awaiting_transcript:
+            self.awaiting_transcript = False
+            self.agent.telemetry.emit('speech_candidate_closed', reason=reason,
+                                      epoch=self.agent.gate.epoch)
+
+    def provider_stopped(self):
+        self.finish_candidate('activity_ended_without_transcript')
 
     @staticmethod
     def stop_text(text):
@@ -48,13 +90,17 @@ class VoiceTurns:
             # must not revoke current audio or mint a fresh response permit.
             self.agent.gate.decided.clear()
             self.awaiting_transcript = True
+            self.agent.telemetry.emit('speech_candidate_started', epoch=self.agent.gate.epoch)
 
     def transcribed(self, event):
         text = event.transcript.strip()
         if not any(char.isalnum() for char in text):
             return False
-        item_id = getattr(event, 'item_id', None)
         final = getattr(event, 'is_final', True)
+        if final and is_non_speech_artifact(text, self.agent.gate):
+            self.agent.telemetry.emit('transcript_artifact_ignored')
+            return False
+        item_id = getattr(event, 'item_id', None)
         signature = (text, final)
         if item_id is not None:
             previous = self.seen_inputs.get(item_id)
@@ -66,6 +112,14 @@ class VoiceTurns:
             self.seen_inputs.move_to_end(item_id)
             if len(self.seen_inputs) > 256:
                 self.seen_inputs.popitem(last=False)
+            if previous is not None and item_id != self.input_id:
+                # A revised/finalized OLD utterance is memory, not a new request.
+                # Do not touch current intent, stop evidence, tools or candidates.
+                if final and (link := getattr(self.agent, 'meeting_link', None)):
+                    link.record(item_id, 'user', text)
+                self.agent.telemetry.emit('historical_transcript_received', input_id=item_id,
+                                          is_final=final, epoch=self.agent.gate.epoch)
+                return False
         new_input = (item_id != self.input_id if item_id is not None
                      else self.awaiting_transcript or not self.last_input_text)
         self.last_input_text = text
@@ -77,6 +131,9 @@ class VoiceTurns:
             self.agent.telemetry.begin_turn()
             self.input_id = item_id
             self.awaiting_tool_reply = False
+            self.pending_semantic_stop = None
+            self.agent.telemetry.emit('utterance_accepted', input_id=item_id,
+                                      epoch=self.agent.gate.epoch)
             for task in tuple(self.agent.pending_tools):
                 task.cancel()
         self.last_input_epoch = self.agent.gate.epoch

@@ -26,6 +26,7 @@ from livekit.agents.llm import ToolFlag, ToolResult
 from livekit.agents.voice import ModelSettings
 from livekit.plugins import google
 
+from app._tasks import spawn
 from app.agent.chat_tools import VoiceChatTools
 from app.agent.gating import ResponseGate
 from app.agent.parallel_tools import ParallelTools
@@ -37,12 +38,13 @@ from app.agent.visual_replies import VisualReplies
 from app.config.settings import ROOT, Settings
 from app.meeting.security import room_name
 from app.memory.live import MeetingLink
-from app.observability.telemetry import Telemetry, configure_logging
+from app.observability.telemetry import Telemetry, configure_logging, runtime_revision
 from app.voice.input_filter import SpeechInputFilter
 from app.voice.input_health import InputHealth
 from app.voice.network import google_http_options, tls_context, warm_network_runtime
 from app.voice.recovery import RecoveringRealtimeModel, connection_failure_reason
 from app.voice.runtime import initialize_audio_runtime, setup_worker
+from app.voice.speech import SpeechTimeline
 from app.workflows.search import SearchWorkflow
 
 load_dotenv(ROOT / '.env')
@@ -52,11 +54,18 @@ log = logging.getLogger(__name__)
 
 
 def create_model(settings: Settings) -> google.realtime.RealtimeModel:
+    # Only sent when explicitly configured, so the default path is byte-identical to
+    # the previously verified connection.
+    options = {}
+    if settings.gemini_thinking_budget is not None:
+        options['thinking_config'] = types.ThinkingConfig(
+            thinking_budget=settings.gemini_thinking_budget)
     return RecoveringRealtimeModel(
         model=settings.gemini_model, api_key=settings.google_api_key.get_secret_value(),
         voice=settings.gemini_voice, api_version=settings.gemini_api_version,
         http_options=google_http_options(),
         modalities=[types.Modality.AUDIO],
+        **options,
         input_audio_transcription=types.AudioTranscriptionConfig(
             language_codes=[code.strip() for code in settings.input_languages.split(',') if code.strip()],
             custom_vocabulary=[name.strip() for p in PERSONAS.values() for name in p.names.split(',')]),
@@ -65,7 +74,9 @@ def create_model(settings: Settings) -> google.realtime.RealtimeModel:
             automatic_activity_detection=types.AutomaticActivityDetection(
                 disabled=False, silence_duration_ms=settings.gemini_silence_duration_ms,
                 prefix_padding_ms=100,
-                start_of_speech_sensitivity=types.StartSensitivity.START_SENSITIVITY_LOW),
+                start_of_speech_sensitivity=(types.StartSensitivity.START_SENSITIVITY_HIGH
+                    if settings.gemini_start_sensitivity == 'high'
+                    else types.StartSensitivity.START_SENSITIVITY_LOW)),
             turn_coverage=types.TurnCoverage.TURN_INCLUDES_AUDIO_ACTIVITY_AND_ALL_VIDEO),
         context_window_compression=types.ContextWindowCompressionConfig(
             sliding_window=types.SlidingWindow()),
@@ -120,6 +131,7 @@ class MeetingAgent(Agent):
         self.is_speaking = False
         self.input_available = False
         self.voice_state = 'initializing'
+        self.user_speaking = False
         self.meeting_link: MeetingLink | None = None
         self.mode = mode
         self.persona = PERSONAS['khaled']
@@ -244,37 +256,63 @@ class MeetingAgent(Agent):
         return await self.parallel.run(context, 'meeting_context',
             'Retrieving the requested meeting context in the background.', retrieve, silent=True)
 
+    def _cancel_generation(self, reason: str) -> None:
+        """Stop a generation that was never authorized, instead of buffering its audio."""
+        session = None
+        try:
+            session = self.session  # SDK property; raises when no activity is running
+        except (RuntimeError, AttributeError):
+            pass
+        if session is not None:
+            try:
+                session.interrupt(force=True)
+            except (RuntimeError, AttributeError):
+                self.telemetry.emit('generation_cancel_unavailable', reason=reason)
+        self.telemetry.emit('generation_cancelled', reason=reason)
+
     async def realtime_audio_output_node(self, audio: AsyncIterable[rtc.AudioFrame],
                                          model_settings: ModelSettings) -> AsyncIterator[rtc.AudioFrame]:
-        allowed, epoch = False, self.gate.epoch
-        first = True
-        published = False
+        """Authorize once per generation, before the first frame, without waiting.
+
+        Audio is either published immediately or the generation is cancelled. Nothing
+        is buffered while waiting for evidence that the provider only produces after
+        generation ends.
+        """
+        gate = self.gate
         turns = getattr(self, 'turns', None)
-        serial = turns.tool_serial if turns else 0
         generation = getattr(self, 'persona_generation', 0)
-        async for frame in audio:
-            if getattr(self, 'persona_switching', False) or generation != getattr(self, 'persona_generation', 0):
-                continue
-            if first:
-                self.telemetry.emit('first_generated_audio_observed')
-                self.telemetry.emit('response_gate_wait_started')
-                allowed, epoch = await self.gate.claim()
-                self.telemetry.emit('response_gate_decided', authorized=allowed)
-            if (allowed and epoch == self.gate.epoch and self.gate.tools_allowed()
-                    and not getattr(self, 'persona_switching', False)
-                    and generation == getattr(self, 'persona_generation', 0)):
-                if first:
-                    # Observation is immediately before SDK publication, not a packet timestamp.
-                    self.telemetry.emit('first_audio_handed_to_livekit')
-                if first and turns:
-                    serial = turns.tool_serial
+        epoch = gate.epoch
+        serial = turns.tool_serial if turns else 0
+        published = False
+        decided = False
+        try:
+            async for frame in audio:
+                if (getattr(self, 'persona_switching', False)
+                        or generation != getattr(self, 'persona_generation', 0)):
+                    continue
+                if not decided:
+                    decided = True
+                    epoch = gate.epoch
+                    self.telemetry.emit('first_generated_audio_observed')
+                    allowed, reason = gate.decide()
+                    self.telemetry.emit('response_gate_decided', authorized=allowed,
+                                        reason=reason, epoch=epoch, gate_wait_ms=0)
+                    if not allowed:
+                        self._cancel_generation(reason)
+                        return
+                    if turns:
+                        serial = turns.tool_serial
+                    self.telemetry.emit('first_audio_handed_to_livekit', epoch=epoch)
+                if epoch != gate.epoch or not gate.tools_allowed():
+                    # Explicit stop or a newer turn revokes the rest of this stream.
+                    continue
                 self.published_audio = True
                 self.speaking_persona = getattr(self, 'persona', PERSONAS['khaled']).name
                 published = True
                 yield frame
-            first = False
-        if turns and published:
-            turns.audio_finished(epoch, serial)
+        finally:
+            if turns and published:
+                turns.audio_finished(epoch, serial)
 
 
 async def accept(request: JobRequest) -> None:
@@ -298,9 +336,18 @@ async def entrypoint(ctx: JobContext):
     sid = str(UUID(meta['session_id']))
     gate = ResponseGate(s.wake_names, local=meta['mode'] == 'local',
                         followup_seconds=s.meeting_followup_seconds if meta['mode'] == 'meeting' else 0,
-                        followup_until_stop=s.meeting_followup_until_stop and meta['mode'] == 'meeting')
+                        followup_until_stop=s.meeting_followup_until_stop and meta['mode'] == 'meeting',
+                        decision_timeout=s.turn_decision_seconds,
+                        permit_seconds=s.turn_permit_seconds)
     telemetry = Telemetry(sid, s.latency_path)
     telemetry.start()
+    telemetry.emit('runtime_started', runtime_revision=await asyncio.to_thread(runtime_revision, ROOT),
+                   mode=meta['mode'], model=s.gemini_model, api_version=s.gemini_api_version,
+                   voice=s.gemini_voice, noise_suppression=s.voice_noise_suppression,
+                   silence_duration_ms=s.gemini_silence_duration_ms,
+                   start_sensitivity=s.gemini_start_sensitivity,
+                   followup_until_stop=s.meeting_followup_until_stop,
+                   screen_enabled=s.screen_enabled, vision_enabled=s.vision_enabled)
     # Also handles SDKs that skip a prewarm callback; keep trust-store work off-loop.
     await asyncio.to_thread(warm_network_runtime)
     async with httpx.AsyncClient(verify=tls_context()) as http:
@@ -314,6 +361,15 @@ async def entrypoint(ctx: JobContext):
         model.audio_observer = input_health.observe
         if s.voice_noise_suppression:
             model.audio_filter_factory = SpeechInputFilter
+        # The only end-of-speech evidence in this app: the provider's activity events
+        # follow generation, and its final transcript arrives at generation end.
+        # Observes frames only and gates nothing.
+        timeline = SpeechTimeline(
+            on_start=lambda at: telemetry.emit('user_speech_started', observed_monotonic=at),
+            on_end=lambda at, duration_ms: telemetry.emit(
+                'user_speech_end', observed_monotonic=at, duration_ms=round(duration_ms, 1)))
+        model.speech_timeline = timeline
+        agent.speech_timeline = timeline
         visual_replies = VisualReplies(agent, session)
         model.visual_reply_handler = visual_replies.submit
         if meta['mode'] == 'meeting':
@@ -355,9 +411,17 @@ async def entrypoint(ctx: JobContext):
 
         @session.on('user_state_changed')
         def user_state(event):
+            agent.user_speaking = event.new_state == 'speaking'
             if event.new_state == 'speaking':
+                telemetry.emit('provider_user_state_speaking_observed')
+                # The SDK interrupts on this event without any local confirmation, so
+                # record whether our own timeline agrees that a person is talking.
+                telemetry.emit('barge_in_observed',
+                               confirmed_ms=round(timeline.confirmed_ms(), 1),
+                               agent_speaking=agent.is_speaking)
                 agent.turns.provider_started()
             elif event.old_state == 'speaking':
+                agent.turns.provider_stopped()
                 telemetry.emit('provider_user_state_listening_observed')
 
         @session.on('user_input_transcribed')
@@ -440,7 +504,7 @@ async def entrypoint(ctx: JobContext):
                     }).encode(), reliable=True, topic='voice-status')
                 except Exception:
                     log.warning('voice_error_notification_failed')
-            asyncio.create_task(notify_browser())
+            spawn(notify_browser(), name='voice-error-notify')
 
         @session.on('close')
         def close(_event):

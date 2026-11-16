@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -6,6 +7,22 @@ import re
 import time
 from pathlib import Path
 from uuid import uuid4
+
+
+def runtime_revision(root: Path) -> str:
+    """Hash deployed code, not .env, data, credentials or user content."""
+    digest = hashlib.sha256()
+    paths = list((root / 'app').rglob('*.py')) + list((root / 'prompts').glob('*.md'))
+    paths += [root / 'requirements.lock', root / 'pyproject.toml']
+    try:
+        for path in sorted(paths):
+            digest.update(path.relative_to(root).as_posix().encode())
+            digest.update(b'\0')
+            digest.update(path.read_bytes().replace(b'\r\n', b'\n'))
+            digest.update(b'\0')
+    except OSError:
+        return 'unavailable'
+    return digest.hexdigest()[:20]
 
 
 class CapabilityRedaction(logging.Filter):
@@ -56,7 +73,7 @@ class Telemetry:
 
     def begin_turn(self) -> None:
         self.turn = str(uuid4())
-        self.emit('provider_user_state_speaking_observed')
+        self.emit('transcribed_turn_started')
 
     def emit(self, stage: str, **data) -> None:
         row = {'session_id': self.sid, 'turn_id': self.turn, 'clock_id': self.clock_id,

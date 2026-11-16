@@ -268,3 +268,31 @@ def test_console_reports_screen_arrival_and_loss_without_every_frame_spam():
     assert output.count('[Screen] Receiving: Ahmed (1280x720)') == 1
     console.display({**data, 'visual_context': {'connected': False, 'screens': []}})
     assert '[Screen] No fresh shared-screen frames; waiting for video.' in output
+
+
+async def test_metadata_waits_for_user_and_pending_transcript_without_losing_cursor(settings):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, Mock
+
+    agent = SimpleNamespace(chat_ctx=llm.ChatContext(), update_chat_ctx=AsyncMock(),
+                            user_speaking=True, voice_state='listening',
+                            turns=SimpleNamespace(awaiting_transcript=False))
+    data = {'participants': [], 'active_speakers': [], 'cursor': 8,
+            'messages': [{'source': 'recall-live', 'speaker': 'Alice',
+                          'participant_id': '7', 'text': 'Please check this.'}]}
+    async with httpx.AsyncClient() as http:
+        link = MeetingLink(agent, http, settings, 'test', Mock())
+        await link.apply(data)
+        agent.update_chat_ctx.assert_not_awaited()
+        assert link.cursor == 0
+        agent.user_speaking = False
+        agent.turns.awaiting_transcript = True
+        await link.apply(data)
+        agent.update_chat_ctx.assert_not_awaited()
+        assert link.cursor == 0
+        agent.turns.awaiting_transcript = False
+        await link.apply(data)
+        agent.update_chat_ctx.assert_awaited_once()
+        assert link.cursor == 8
+        await link.apply(data)
+        agent.update_chat_ctx.assert_awaited_once()

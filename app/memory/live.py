@@ -79,16 +79,45 @@ class MeetingLink:
                 await file.write(json.dumps(event, ensure_ascii=False) + '\n')
                 await file.flush()
 
+    # 408/429 are the only 4xx that can succeed on retry. Everything else is terminal:
+    # retrying a 404 (deleted meeting) or a 401 (rotated key) parked the only outbox
+    # reader forever, and once pending filled (256) every later record was diverted to
+    # the journal and never replayed.
+    _TRANSIENT_STATUSES = frozenset({408, 429})
+
+    @staticmethod
+    def _retry_delay(attempt: int, retry_after: str) -> float:
+        if retry_after.strip().isdigit():
+            return min(30.0, max(1.0, float(retry_after)))
+        return min(30.0, 2.0 ** min(attempt, 5))
+
     async def transmit(self, event: dict) -> None:
+        attempt = 0
         while True:
             try:
                 response = await self.http.post(self.url + '/conversation', headers=self.headers,
                                                 json=event, timeout=4)
+                if (400 <= response.status_code < 500
+                        and response.status_code not in self._TRANSIENT_STATUSES):
+                    # Terminal: the event stays on disk, only the cursor moves past it.
+                    self.telemetry.emit('conversation_persistence_rejected',
+                                        status=response.status_code)
+                    log.error('conversation_persistence_rejected',
+                              extra={'session_id': self.sid,
+                                     'event_id': event.get('event_key'),
+                                     'error_type': f'http_{response.status_code}'})
+                    return
                 response.raise_for_status()
+                if attempt:
+                    self.telemetry.emit('conversation_persistence_recovered', attempts=attempt)
                 return
+            except httpx.HTTPStatusError as error:
+                delay = self._retry_delay(attempt, error.response.headers.get('Retry-After', ''))
             except httpx.HTTPError:
-                self.telemetry.emit('conversation_persistence_retry')
-                await asyncio.sleep(1)
+                delay = self._retry_delay(attempt, '')
+            attempt += 1
+            self.telemetry.emit('conversation_persistence_retry', attempts=attempt)
+            await asyncio.sleep(delay)
 
     async def persist(self) -> None:
         # Disk persistence must never wait for the API to come back online.
@@ -143,7 +172,9 @@ class MeetingLink:
             gate.set_reported_speaker(active_ids[0] if len(active_ids) == 1 else '__multiple__')
         # Thinking is already an active native response: playback has not started yet.
         # Keep the cursor unchanged so deferred annotations are fetched again.
-        if (getattr(self.agent, 'is_speaking', False) or
+        if (getattr(self.agent, 'user_speaking', False) or
+                getattr(getattr(self.agent, 'turns', None), 'awaiting_transcript', False) or
+                getattr(self.agent, 'is_speaking', False) or
                 getattr(self.agent, 'voice_state', 'listening') != 'listening'):
             return
         messages = data['messages']
@@ -184,22 +215,35 @@ class MeetingLink:
                                 reported_speakers=len(active), transcript_updates=len(annotations))
         self.cursor = data['cursor']
 
+    def _poll_interval(self) -> float:
+        """Fast only while a turn is actually in play; 2.5 Hz forever is pure waste."""
+        agent = self.agent
+        busy = (getattr(agent, 'user_speaking', False)
+                or getattr(getattr(agent, 'turns', None), 'awaiting_transcript', False)
+                or getattr(agent, 'is_speaking', False))
+        return (self.settings.context_poll_seconds if busy
+                else self.settings.context_idle_poll_seconds)
+
     async def synchronize(self) -> None:
-        failed = False
+        failures = 0
         while True:
             try:
                 response = await self.http.get(self.url + '/live-context', headers=self.headers,
                                                params={'after': self.cursor}, timeout=4)
                 response.raise_for_status()
                 await self.apply(response.json())
-                if failed:
-                    self.telemetry.emit('meeting_context_sync_recovered')
-                failed = False
+                if failures:
+                    self.telemetry.emit('meeting_context_sync_recovered', failures=failures)
+                failures = 0
             except Exception as exc:
-                if not failed:
+                failures += 1
+                if failures == 1:
                     self.telemetry.emit('meeting_context_sync_retry', error_type=type(exc).__name__)
-                failed = True
-            await asyncio.sleep(.4)
+            delay = self._poll_interval()
+            if failures:
+                # An outage must not be answered with a 9,000 request/hour hammer.
+                delay = min(30.0, delay * 2 ** min(failures, 6))
+            await asyncio.sleep(delay)
 
     async def close(self) -> None:
         try:

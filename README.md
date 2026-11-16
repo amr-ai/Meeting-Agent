@@ -68,6 +68,12 @@ wait. Set `VOICE_NOISE_SUPPRESSION=false` to bypass the denoiser if needed.
 It reduces background noise; it cannot isolate overlapping speakers in a mixed
 meeting track. Speaker names still come from Recall, without blocking replies.
 
+Late final transcripts for an earlier known utterance update stored memory without
+replacing the current question. Unconfirmed speech activity ends with the provider's
+speech-end event or a bounded candidate timeout; this never silences the conversation.
+Repeated tool-result notification IDs cannot grant a second spoken response.
+Diagnostics include a source revision and gate rejection reasons without credentials.
+
 Activity hints and duplicate transcript callbacks do not authorize another reply.
 A fresh spoken request or an authorized tool result is required. Silence keeps
 the active conversation open without generating repeated offers of help.

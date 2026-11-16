@@ -16,23 +16,34 @@ from app.meeting.security import validate_meeting_url
 from app.observability.conversation import ConversationConsole
 
 
-def healthy(client: httpx.Client, origin: str) -> bool:
+def health_error(client: httpx.Client, origin: str) -> str | None:
     try:
         response = client.get(origin.rstrip('/') + '/health', timeout=3)
-        return response.status_code == 200 and response.json().get('status') in {'ok', 'degraded'}
-    except (httpx.HTTPError, ValueError, AttributeError):
-        return False
+        if response.status_code != 200:
+            ngrok_error = response.headers.get('ngrok-error-code', '')
+            detail = f' ({ngrok_error})' if ngrok_error.startswith('ERR_NGROK_') and ngrok_error[10:].isdigit() else ''
+            return f'HTTP {response.status_code}{detail}'
+        if response.json().get('status') in {'ok', 'degraded'}:
+            return None
+    except httpx.HTTPError as exc:
+        return type(exc).__name__
+    except (ValueError, AttributeError):
+        pass
+    return 'unexpected health response'
 
 
-def wait_ready(client: httpx.Client, origin: str, process: subprocess.Popen, seconds: int) -> None:
+def wait_ready(client: httpx.Client, origin: str, process: subprocess.Popen, seconds: int, log_name: str) -> None:
     deadline = time.monotonic() + seconds
+    error = None
     while time.monotonic() < deadline:
-        if healthy(client, origin):
+        error = health_error(client, origin)
+        if error is None:
             return
-        if process.poll() is not None:
-            raise RuntimeError('Startup process exited; inspect data/meeting-*.log')
+        exit_code = process.poll()
+        if exit_code is not None:
+            raise RuntimeError(f'Startup process exited with code {exit_code}. See data/{log_name}.')
         time.sleep(1)
-    raise RuntimeError('Startup timed out; inspect data/meeting-*.log')
+    raise RuntimeError(f'Startup timed out. Last health check returned {error}. See data/{log_name}.')
 
 
 def stop_owned(process: subprocess.Popen) -> None:
@@ -76,31 +87,33 @@ def main() -> int:
     flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
     owned = []
     session_id = None
+    join_pending = False
     cleanup = False
     exit_code = 0
     with ExitStack() as stack:
         client = stack.enter_context(httpx.Client(timeout=45, follow_redirects=False))
         auth = {'Authorization': 'Bearer ' + settings.admin_api_key.get_secret_value()}
         try:
+            api_port = urlparse(settings.api_base_url).port or 80
             (ROOT / 'data').mkdir(exist_ok=True)
-            if not healthy(client, settings.api_base_url):
+            if health_error(client, settings.api_base_url) is not None:
                 print('Starting API and voice worker...', flush=True)
                 log = stack.enter_context((ROOT / 'data/meeting-services.log').open('w', encoding='utf-8'))
                 process = subprocess.Popen([sys.executable, str(ROOT / 'scripts/launch.py'), '--no-browser'],
                     cwd=ROOT, env=environment, stdout=log, stderr=subprocess.STDOUT, creationflags=flags)
                 owned.append(process)
-                wait_ready(client, settings.api_base_url, process, 180)
+                wait_ready(client, settings.api_base_url, process, 180, 'meeting-services.log')
             runtime_health = client.get(settings.api_base_url.rstrip('/') + '/health').json()
             if runtime_health.get('protocol_version', 0) < (12 if settings.screen_enabled else 10):
                 raise RuntimeError('An older API is still running. Close the old Run-Agent.cmd window, then restart Join-Meeting.cmd.')
-            if not healthy(client, settings.public_base_url):
+            if health_error(client, settings.public_base_url) is not None:
                 print('Starting public audio tunnel...', flush=True)
                 log = stack.enter_context((ROOT / 'data/meeting-tunnel.log').open('w', encoding='utf-8'))
-                process = subprocess.Popen([executable, 'http', 'http://127.0.0.1:8000', '--url', settings.public_base_url,
-                    '--log', 'stdout', '--log-format', 'json', '--log-level', 'warn'],
+                process = subprocess.Popen([executable, 'http', f'http://127.0.0.1:{api_port}', '--url', settings.public_base_url,
+                    '--log', 'stdout', '--log-format', 'json', '--log-level', 'info'],
                     cwd=ROOT, env=environment, stdout=log, stderr=subprocess.STDOUT, creationflags=flags)
                 owned.append(process)
-                wait_ready(client, settings.public_base_url, process, 45)
+                wait_ready(client, settings.public_base_url, process, 45, 'meeting-tunnel.log')
             runtime_screen = runtime_health.get('screen_features')
             if runtime_screen is not None:
                 screen_message = ('available on request; voice input runs independently' if runtime_screen.get('capture') and runtime_screen.get('vision') else
@@ -110,6 +123,7 @@ def main() -> int:
             else:
                 print('[Screen] Runtime capability status unavailable; restart services to load screen diagnostics.', flush=True)
             print('Sending the assistant to the meeting. Admit it if the platform asks...', flush=True)
+            join_pending = True
             response = client.post(settings.api_base_url.rstrip('/') + '/api/meetings', headers=auth,
                 json={'meeting_url': meeting_url, 'consent_confirmed': True})
             response.raise_for_status()
@@ -167,7 +181,7 @@ def main() -> int:
             print(f'Meeting startup or monitoring failed ({code}). Check data/meeting-*.log and the server logs.')
             if isinstance(exc, RuntimeError):
                 print(str(exc))
-            if session_id is None:
+            if join_pending and session_id is None:
                 print('For an ambiguous join timeout, inspect Recall before retrying to avoid duplicate bots.')
             exit_code = 1
         finally:

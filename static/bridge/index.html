@@ -1,5 +1,9 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="referrer" content="no-referrer">
-<title>Meeting Audio Bridge</title><link rel="stylesheet" href="/static/style.css"></head>
-<body><main><p class="eyebrow">AI MEETING PARTICIPANT</p><h1>Listening to the meeting</h1>
-<p>Address the assistant by name to invite a response.</p><p id="status" role="status">Connecting</p>
-<audio id="audio" autoplay></audio></main><script type="module" src="/static/bridge/bridge.js"></script></body></html>
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer">
+<title>Sprints Bot · Meeting</title><link rel="stylesheet" href="/static/bridge/bridge.css"></head>
+<body class="bridge-page" data-state="connecting">
+<main class="bridge-stage" aria-hidden="true"><div class="orb-glow"></div>
+<div class="orb"><div class="orb-cloud"></div><div class="orb-cloud2"></div><div class="orb-aqua"></div><div class="orb-sheen"></div><div class="orb-shade"></div></div></main>
+<p id="status" role="status">Connecting</p>
+<audio id="audio" autoplay></audio>
+<script type="module" src="/static/bridge/bridge.js"></script></body></html>

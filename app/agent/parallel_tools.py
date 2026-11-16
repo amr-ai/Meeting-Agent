@@ -1,5 +1,6 @@
 """Use LiveKit's public async-tool lifecycle without blocking the voice turn."""
 import asyncio
+import re
 
 from livekit.agents.llm import ToolResult
 
@@ -11,12 +12,29 @@ class ParallelTools:
         self.agent = agent
         self.calls = {}
         self.inline = {}
+        self.completion_serial = 0
+
+    def prune(self):
+        # Keep active calls and a bounded window for late SDK notifications.
+        completed = [key for key, value in self.calls.items() if value['status'] != 'running']
+        completed.sort(key=lambda key: self.calls[key].get('completion_serial', 0))
+        for key in completed[:-256]:
+            del self.calls[key]
+
+    @staticmethod
+    def matches_update(call_id, update_id):
+        # Match the pinned SDK's IDs without accepting arbitrary prefix collisions.
+        if update_id == call_id:
+            return True
+        suffix = update_id.removeprefix(call_id)
+        return suffix == '_final' or bool(re.fullmatch(r'_update_\d+', suffix))
 
     async def run(self, context, name, progress, work, *, silent=False, native_reply=False):
         agent = self.agent
         if not agent.gate.tools_allowed():
             return {'error': 'No addressed tool operation is authorized'}
         call_id = context.function_call.call_id
+        self.prune()
         record = {'name': name, 'status': 'running', 'stop_serial': agent.gate.stop_serial,
                   'epoch': agent.gate.epoch}
         self.calls[call_id] = record
@@ -69,6 +87,10 @@ class ParallelTools:
                 agent.turns.awaiting_tool_reply = True
                 agent.turns.tool_serial += 1
             raise
+        finally:
+            self.completion_serial += 1
+            record['completion_serial'] = self.completion_serial
+            self.prune()
 
     def on_event(self, event):
         update = event.update
@@ -84,10 +106,21 @@ class ParallelTools:
             return
         # The SDK coalesces completed results and schedules them only when idle.
         # Accept only replies originating from our explicitly authorized calls.
-        records = [record for call_id, record in self.calls.items()
-                   if any(entry == call_id or entry.startswith(call_id + '_') for entry in update.update_ids)]
         gate = self.agent.gate
-        if not records or gate.silenced or not any(r['stop_serial'] == gate.stop_serial for r in records):
+        if gate.silenced:
+            return
+        records = []
+        for call_id, record in self.calls.items():
+            if record['stop_serial'] != gate.stop_serial:
+                continue
+            seen = record.setdefault('reply_updates', set())
+            fresh = {entry for entry in update.update_ids
+                     if self.matches_update(call_id, entry) and entry not in seen}
+            if fresh:
+                seen.update(fresh)
+                records.append(record)
+        if not records:
+            self.agent.telemetry.emit('parallel_reply_ignored', reason='unknown_stale_or_duplicate_update')
             return
         gate.authorize_background_reply()
         self.agent.turns.awaiting_tool_reply = True

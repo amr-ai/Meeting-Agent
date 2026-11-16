@@ -5,7 +5,7 @@ set PYTHONIOENCODING=utf-8
 cd /d "%~dp0"
 title AI Meeting Agent
 if not exist ".venv\Scripts\python.exe" (
-    echo Run Run-Agent.cmd once to prepare the Python environment.
+    echo Run Run-Agent.cmd first to prepare the Python environment.
     pause
     exit /b 1
 )

@@ -10,3 +10,6 @@ data/
 *.egg-info/
 build/
 dist/
+# Generated measurement artifacts; dated markdown history stays tracked.
+docs/measurements/
+*.log

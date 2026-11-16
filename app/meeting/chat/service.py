@@ -157,7 +157,8 @@ class ChatService:
                     for index, data in enumerate(items):
                         await self.repo.receive(parse_chat(sid, meeting['bot_id'], data,
                             f'recovery-{index}', source='recall-recovery'),
-                            {self.settings.assistant_name.casefold()})
+                            {self.settings.assistant_name.casefold(),
+                             self.settings.meeting_bot_name.casefold()})
                     await self.store.execute('INSERT OR IGNORE INTO memory VALUES (?,?,?)', (sid, 'chat_reconciled', 'true'))
             except Exception as exc:
                 log.warning('chat_reconciliation_retry', extra={'error_type': type(exc).__name__})

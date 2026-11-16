@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     context_idle_poll_seconds: float = Field(default=2.0, ge=.2, le=30)
     agent_name: str = 'meeting-agent'
     assistant_name: str = 'Khaled'
+    # Participant name shown for the bot in the meeting (Recall) and its chat messages.
+    meeting_bot_name: str = 'Sprints Bot'
     wake_names: str = 'Khaled,Khalid,خالد,يا خالد'
     prompt_path: Path = ROOT / 'prompts/system_prompt.md'
     recall_api_key: SecretStr = SecretStr('')

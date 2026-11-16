@@ -1,6 +1,7 @@
 import asyncio
 import json
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 from uuid import UUID
 
@@ -58,6 +59,7 @@ class Store:
           interrupted INTEGER NOT NULL DEFAULT 0, created REAL NOT NULL,
           UNIQUE(meeting_id,event_key));
         CREATE INDEX IF NOT EXISTS conversation_session ON conversation(meeting_id,seq);
+        CREATE INDEX IF NOT EXISTS events_pending ON events(processed, attempts);
         CREATE TABLE IF NOT EXISTS bridge_metrics (
           meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
           turn_id TEXT NOT NULL, duration_ms REAL NOT NULL, payload TEXT NOT NULL,
@@ -77,6 +79,24 @@ class Store:
         async with self.lock:
             await self.db.execute(sql, args)
             await self.db.commit()
+
+    @asynccontextmanager
+    async def transaction(self):
+        """One lock acquisition for a multi-statement unit of work.
+
+        Replaces the ad-hoc BEGIN IMMEDIATE blocks. A cancellation during the body must
+        still release the write transaction: rollback is shielded so the pending cancel
+        cannot pre-empt it.
+        """
+        async with self.lock:
+            await self.db.execute('BEGIN IMMEDIATE')
+            try:
+                yield self.db
+            except BaseException:
+                await asyncio.shield(self.db.rollback())
+                raise
+            else:
+                await self.db.commit()
 
     async def rows(self, sql: str, args: tuple = ()) -> list[dict]:
         async with self.lock:

@@ -123,7 +123,8 @@ def create_app(settings: Settings | None = None, livekit=None, recall=None, chat
                     **app.state.screens.context(sid), 'visual_tasks': app.state.vision.context(sid)}
             app.state.lk = livekit or LiveKitService(s)
             app.state.recall = recall or RecallClient(http, s)
-            app.state.events = EventProcessor(app.state.store, s.event_queue_size, s.assistant_name)
+            app.state.events = EventProcessor(app.state.store, s.event_queue_size,
+                                              s.assistant_name, s.meeting_bot_name)
             app.state.events.start()
             app.state.chat = ChatService(app.state.store, app.state.recall, http, s, chat_responder)
             await app.state.chat.start()

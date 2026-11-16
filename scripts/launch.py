@@ -13,13 +13,14 @@ import urllib.request
 import venv
 import webbrowser
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = ('ADMIN_API_KEY', 'BRIDGE_SIGNING_SECRET', 'LIVEKIT_URL',
             'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'GOOGLE_API_KEY')
 
 
-def missing_credentials() -> list[str]:
+def local_configuration() -> dict[str, str]:
     # Read values as data; never execute a .env file as a shell script.
     values = {}
     env_file = ROOT / '.env'
@@ -30,6 +31,10 @@ def missing_credentials() -> list[str]:
                 name, value = line.split('=', 1)
                 values[name.strip()] = value.strip().strip('\"\'')
     values.update(os.environ)
+    return values
+
+
+def missing_credentials(values: dict[str, str]) -> list[str]:
     return [name for name in REQUIRED if not values.get(name) or
             values[name].startswith(('your-', 'replace-')) or
             (name in {'ADMIN_API_KEY', 'BRIDGE_SIGNING_SECRET'} and len(values[name]) < 32) or
@@ -111,7 +116,8 @@ def main() -> int:
             pass
         else:
             print('Created .env with independent random application secrets.')
-    missing = missing_credentials()
+    values = local_configuration()
+    missing = missing_credentials(values)
     if missing:
         print('Fill in these settings in .env: ' + ', '.join(missing))
         print('Then double-click Run-Agent.cmd again. Recall and Tavily keys are optional for local voice.')
@@ -137,12 +143,18 @@ def main() -> int:
         subprocess.run([str(executable), '-m', 'pip', 'check'], check=True)
         marker.write_text(fingerprint)
 
+    try:
+        api_port = urlsplit(values.get('API_BASE_URL', 'http://localhost:8000')).port or 80
+    except ValueError:
+        print('Set API_BASE_URL to a valid local API URL in .env.')
+        return 2
+    api_origin = f'http://127.0.0.1:{api_port}'
     # Check the exact listening address before launching to avoid opening an unrelated server.
     with socket.socket() as probe:
         try:
-            probe.bind(('127.0.0.1', 8000))
+            probe.bind(('127.0.0.1', api_port))
         except OSError:
-            print('Port 8000 is already in use. Close the existing server or launcher first.')
+            print(f'Port {api_port} is already in use. Set API_BASE_URL to an unused local port or close the existing server.')
             return 1
     print('Checking the Gemini Live connection...', flush=True)
     result = subprocess.run([str(executable), '-m', 'app.agent.diagnostics'])
@@ -152,7 +164,7 @@ def main() -> int:
     flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
     commands = [
         [str(executable), '-m', 'uvicorn', 'app.main:create_app',
-         '--factory', '--host', '127.0.0.1', '--port', '8000', '--no-access-log'],
+         '--factory', '--host', '127.0.0.1', '--port', str(api_port), '--no-access-log'],
         [str(executable), '-m', 'app.agent.worker', 'start'],
     ]
     try:
@@ -169,7 +181,7 @@ def main() -> int:
                         print(f'{role} exited during startup (PID {child.pid}, code {child.poll()}).', flush=True)
                 return 1
             try:
-                with opener.open('http://127.0.0.1:8000/health', timeout=1) as response:
+                with opener.open(f'{api_origin}/health', timeout=1) as response:
                     if response.status == 200:
                         break
             except (urllib.error.URLError, TimeoutError):
@@ -178,7 +190,7 @@ def main() -> int:
             print('API startup timed out. Check the messages above.')
             return 1
         if not args.no_browser:
-            webbrowser.open('http://localhost:8000')
+            webbrowser.open(api_origin)
             print('Click Start conversation on the voice page and allow microphone access.', flush=True)
         print('For meetings, configure Recall and public HTTPS as described in README.md.', flush=True)
         supervise(children, commands, flags)

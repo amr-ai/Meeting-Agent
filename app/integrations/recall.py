@@ -41,7 +41,7 @@ class RecallClient:
         if urlparse(s.public_base_url).scheme != 'https':
             raise ValueError('Meeting mode requires a public HTTPS base URL')
         payload = {
-            'meeting_url': validate_meeting_url(meeting_url), 'bot_name': s.assistant_name,
+            'meeting_url': validate_meeting_url(meeting_url), 'bot_name': s.meeting_bot_name,
             'output_media': {'camera': {'kind': 'webpage', 'config': {'url': bridge_url}}},
             'variant': {'google_meet': 'web_4_core', 'zoom': 'web_4_core',
                         'microsoft_teams': 'web_4_core'},

@@ -29,7 +29,7 @@ class ChatSender:
             if isinstance(value, SecretStr) and len(value.get_secret_value()) >= 8 and value.get_secret_value() in message:
                 raise ValueError('Outgoing message contains configured credentials; no message was sent')
         parts = split_message(message)
-        rows = await self.repo.outgoing(sid, meeting['bot_id'], self.settings.assistant_name,
+        rows = await self.repo.outgoing(sid, meeting['bot_id'], self.settings.meeting_bot_name,
                                         parts, key, reply_to)
         for row in rows:
             await self.deliver(row['id'])

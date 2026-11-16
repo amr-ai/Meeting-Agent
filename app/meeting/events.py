@@ -30,9 +30,11 @@ def parse_utterance(sid: str, bot_id: str, data: dict, eid: str,
 
 
 class EventProcessor:
-    def __init__(self, store: Store, queue_size: int = 256, assistant_name: str = 'Khaled'):
+    def __init__(self, store: Store, queue_size: int = 256, assistant_name: str = 'Khaled',
+                 bot_name: str = 'Sprints Bot'):
         self.store = store
-        self.chat_names = {assistant_name.casefold()}
+        # Bot chat arrives under the meeting participant name, which is not the persona name.
+        self.chat_names = {assistant_name.casefold(), bot_name.casefold()}
         self.wake: asyncio.Queue[None] = asyncio.Queue(maxsize=queue_size)
         self.stopping = False
         self.task: asyncio.Task | None = None
